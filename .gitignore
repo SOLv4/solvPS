@@ -10,25 +10,40 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
 # next.js
 /.next/
 /out/
 
 # production
 /build
+/dist
+
+# cache
+.swc/
+.turbo/
+.eslintcache
+.cache/
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+
+# IDE
+.idea/
+.vscode/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# test artifacts
+/coverage
+/cypress/videos/
+/cypress/screenshots/
 
 # env files (can opt-in for committing if needed)
 .env*
