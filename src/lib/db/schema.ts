@@ -9,6 +9,7 @@ import {
   text,
   json,
   primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // ── Enums ─────────────────────────────────────────────
@@ -208,3 +209,31 @@ export const analysisReports = pgTable("analysis_reports", {
   content: text("content").notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ── BOJ Integration Submissions ───────────────────────
+export const integrationSubmissions = pgTable(
+  "integration_submissions",
+  {
+    id: serial("id").primaryKey(),
+    source_platform: varchar("source_platform", { length: 30 }).notNull().default("baekjoon"),
+    submission_id: varchar("submission_id", { length: 64 }).notNull(),
+    team_id: integer("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    user_id: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    member_handle: varchar("member_handle", { length: 50 }).notNull(),
+    problem_id: integer("problem_id").notNull(),
+    language: varchar("language", { length: 100 }).notNull(),
+    source_code: text("source_code").notNull(),
+    runtime_ms: integer("runtime_ms"),
+    memory_kb: integer("memory_kb"),
+    result: varchar("result", { length: 30 }).notNull(),
+    submitted_at_raw: varchar("submitted_at_raw", { length: 50 }),
+    captured_at: timestamp("captured_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("integration_submissions_team_submission_uidx").on(t.team_id, t.submission_id),
+  ]
+);

@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "BOJ Team Sync",
+  "description": "백준 제출 코드를 팀 플랫폼으로 동기화합니다.",
+  "version": "0.1.0",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.acmicpc.net/*",
+    "https://acmicpc.net/*",
+    "http://www.acmicpc.net/*",
+    "http://acmicpc.net/*",
+    "http://localhost:3000/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.acmicpc.net/*",
+        "https://acmicpc.net/*",
+        "http://www.acmicpc.net/*",
+        "http://acmicpc.net/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "BOJ Team Sync"
+  }
+}
