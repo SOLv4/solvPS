@@ -26,11 +26,7 @@ function buildSolvedAcQuery(q: string, tier: string, tag: string) {
   const trimmedTag = tag.trim();
 
   if (trimmedQ) {
-    if (/^\d+$/.test(trimmedQ)) {
-      parts.push(`id:${trimmedQ}`);
-    } else {
-      parts.push(trimmedQ);
-    }
+    parts.push(trimmedQ);
   }
 
   if (trimmedTag) {
@@ -61,46 +57,117 @@ export async function GET(request: NextRequest) {
     const page = request.nextUrl.searchParams.get("page") ?? "1";
     const size = request.nextUrl.searchParams.get("size") ?? "20";
 
-    const query = buildSolvedAcQuery(q, tier, tag);
-    const params = new URLSearchParams({
-      query,
-      page,
-      sort: "level",
-      direction: "asc",
-    });
-
-    const res = await fetch(`${SOLVED_AC_BASE}/search/problem?${params}`, {
-      headers: {
-        "User-Agent": process.env.SOLVED_AC_USER_AGENT || DEFAULT_USER_AGENT,
-      },
-      next: { revalidate: 0 },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      return NextResponse.json(
-        { error: `solved.ac request failed: ${res.status}`, detail: text },
-        { status: 502 },
-      );
-    }
-
-    const data = (await res.json()) as {
-      count?: number;
-      items?: SolvedAcProblem[];
+    const trimmedQ = q.trim();
+    const numericPrefixQuery = /^\d+$/.test(trimmedQ);
+    const sizeNum = Number(size) || 20;
+    const headers = {
+      "User-Agent": process.env.SOLVED_AC_USER_AGENT || DEFAULT_USER_AGENT,
     };
 
-    const items = (data.items ?? []).map((problem) => ({
-      id: `boj-${problem.problemId}`,
-      bojId: problem.problemId,
-      title: problem.titleKo || `문제 ${problem.problemId}`,
-      level: problem.level,
-      tags: toReadableTags(problem),
-      inRoadmap: false,
-    }));
+    let items: Array<{
+      id: string;
+      bojId: number;
+      title: string;
+      level: number;
+      tags: string[];
+      inRoadmap: boolean;
+    }> = [];
+    let totalCount = 0;
+
+    if (numericPrefixQuery) {
+      // 숫자 접두 검색은 id 오름차순에서 여러 페이지를 보며 prefix 일치 항목을 모읍니다.
+      // 이렇게 하면 "1" 입력 시 보통 1000대부터 순서대로 보여줄 수 있습니다.
+      const baseQuery = buildSolvedAcQuery("", tier, tag);
+      const startPage = Math.max(1, Number(page) || 1);
+      const maxPagesToScan = 8;
+
+      for (let currentPage = startPage; currentPage < startPage + maxPagesToScan; currentPage += 1) {
+        const params = new URLSearchParams({
+          query: baseQuery,
+          page: String(currentPage),
+          sort: "id",
+          direction: "asc",
+        });
+
+        const res = await fetch(`${SOLVED_AC_BASE}/search/problem?${params}`, {
+          headers,
+          next: { revalidate: 0 },
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          return NextResponse.json(
+            { error: `solved.ac request failed: ${res.status}`, detail: text },
+            { status: 502 },
+          );
+        }
+
+        const data = (await res.json()) as {
+          count?: number;
+          items?: SolvedAcProblem[];
+        };
+
+        totalCount = data.count ?? totalCount;
+        const matched = (data.items ?? []).filter((problem) =>
+          String(problem.problemId).startsWith(trimmedQ),
+        );
+
+        items.push(
+          ...matched.map((problem) => ({
+            id: `boj-${problem.problemId}`,
+            bojId: problem.problemId,
+            title: problem.titleKo || `문제 ${problem.problemId}`,
+            level: problem.level,
+            tags: toReadableTags(problem),
+            inRoadmap: false,
+          })),
+        );
+
+        if (items.length >= sizeNum || (data.items ?? []).length === 0) {
+          break;
+        }
+      }
+    } else {
+      const query = buildSolvedAcQuery(q, tier, tag);
+      const params = new URLSearchParams({
+        query,
+        page,
+        sort: "level",
+        direction: "asc",
+      });
+
+      const res = await fetch(`${SOLVED_AC_BASE}/search/problem?${params}`, {
+        headers,
+        next: { revalidate: 0 },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        return NextResponse.json(
+          { error: `solved.ac request failed: ${res.status}`, detail: text },
+          { status: 502 },
+        );
+      }
+
+      const data = (await res.json()) as {
+        count?: number;
+        items?: SolvedAcProblem[];
+      };
+
+      totalCount = data.count ?? 0;
+      items = (data.items ?? []).map((problem) => ({
+        id: `boj-${problem.problemId}`,
+        bojId: problem.problemId,
+        title: problem.titleKo || `문제 ${problem.problemId}`,
+        level: problem.level,
+        tags: toReadableTags(problem),
+        inRoadmap: false,
+      }));
+    }
 
     return NextResponse.json({
-      count: data.count ?? items.length,
-      items: items.slice(0, Number(size)),
+      count: totalCount || items.length,
+      items: items.slice(0, sizeNum),
     });
   } catch (error) {
     console.error("problems/search error:", error);
