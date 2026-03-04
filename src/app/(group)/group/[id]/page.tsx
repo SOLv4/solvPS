@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Copy, Check, Users } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Copy, Check, Users, ChevronDown } from "lucide-react";
 import MemberRanking from "@/components/group/MemberRanking";
 import RoadmapSection from "@/components/group/RoadmapSection";
 
@@ -35,8 +35,15 @@ interface GroupData {
   roadmaps: Roadmap[];
 }
 
+interface MyGroup {
+  id: number;
+  name: string;
+  role: string;
+}
+
 export default function GroupDashboard() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [data, setData] = useState<GroupData | null>(null);
@@ -44,7 +51,19 @@ export default function GroupDashboard() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  const [myGroups, setMyGroups] = useState<MyGroup[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   useEffect(() => {
+    fetch("/api/group")
+      .then((r) => r.json())
+      .then((groups) => { if (Array.isArray(groups)) setMyGroups(groups); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    setError("");
     fetch(`/api/group/${id}`)
       .then(async (res) => {
         if (!res.ok) {
@@ -88,23 +107,55 @@ export default function GroupDashboard() {
         {/* 헤더 */}
         <div className="mb-8 pb-6 border-b border-[#EAEAEA]">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-[#111]">{data.team.name}</h1>
-              <p className="text-[#666] text-sm mt-1">그룹 대시보드</p>
+            <div className="flex items-center gap-3">
+              {/* 그룹 스위처 */}
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen((v) => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#EAEAEA] bg-white hover:bg-[#F5F8FF] transition-colors"
+                >
+                  <span className="text-2xl font-bold text-[#111]">{data.team.name}</span>
+                  {myGroups.length > 1 && <ChevronDown size={16} className="text-[#666]" />}
+                </button>
+                {dropdownOpen && myGroups.length > 1 && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-[#EAEAEA] rounded-xl shadow-lg z-10 overflow-hidden">
+                    {myGroups.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => {
+                          router.push(`/group/${g.id}`);
+                          setDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                          g.id === Number(id)
+                            ? "bg-[#F5F8FF] text-[#0046FE] font-semibold"
+                            : "text-[#111] hover:bg-[#F5F8FF]"
+                        }`}
+                      >
+                        {g.name}
+                        <span className="ml-2 text-xs text-[#999]">{g.role === "OWNER" ? "팀장" : "멤버"}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <button
-              onClick={copyInviteCode}
-              className="flex items-center gap-2 px-4 py-2 bg-[#F5F8FF] hover:bg-[#E6EEFF] border border-[#EAEAEA] rounded-xl transition-colors"
-            >
-              <span className="font-mono text-sm font-semibold text-[#0046FE] tracking-widest">
-                {data.team.invite_code}
-              </span>
-              {copied ? (
-                <Check size={14} className="text-green-500" />
-              ) : (
-                <Copy size={14} className="text-[#666]" />
-              )}
-            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyInviteCode}
+                className="flex items-center gap-2 px-4 py-2 bg-[#F5F8FF] hover:bg-[#E6EEFF] border border-[#EAEAEA] rounded-xl transition-colors"
+              >
+                <span className="font-mono text-sm font-semibold text-[#0046FE] tracking-widest">
+                  {data.team.invite_code}
+                </span>
+                {copied ? (
+                  <Check size={14} className="text-green-500" />
+                ) : (
+                  <Copy size={14} className="text-[#666]" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

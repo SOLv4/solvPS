@@ -4,6 +4,22 @@ import { db } from "@/lib/db";
 import { users, teams, teamMembers } from "@/lib/db/schema";
 import { auth } from "@/lib/auth/index";
 
+export async function GET(req: NextRequest) {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const myTeams = await db
+    .select({ id: teams.id, name: teams.name, role: teamMembers.role })
+    .from(teamMembers)
+    .innerJoin(teams, eq(teamMembers.team_id, teams.id))
+    .where(eq(teamMembers.user_id, Number(session.user.id)))
+    .orderBy(teams.id);
+
+  return NextResponse.json(myTeams);
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) {
