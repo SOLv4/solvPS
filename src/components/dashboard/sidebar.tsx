@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
-import { User, Users, Settings, LogOut, PlusCircle, BarChart2 } from "lucide-react";
+import { User, Users, LogOut, PlusCircle, BarChart2 } from "lucide-react";
 
 export default function Sidebar({ user }: { user: any }) {
   const pathname = usePathname();
@@ -20,8 +20,7 @@ export default function Sidebar({ user }: { user: any }) {
 
   const menuItems = [
     { name: "내 통계", href: "/status", icon: BarChart2 },
-    { name: "내 그룹", href: "/dashboard/groups", icon: Users },
-    { name: "회원정보 수정", href: "/dashboard/profile", icon: Settings },
+    { name: "내 그룹", href: "/group", icon: Users },
   ];
 
   return (
@@ -73,7 +72,7 @@ export default function Sidebar({ user }: { user: any }) {
         {/* 구분선과 그룹 생성 버튼 */}
         <div className="pt-4 mt-4 border-t border-[#EAEAEA]">
           <Link
-            href="/dashboard/groups/create"
+            href="/group"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold bg-[#F5F8FF] text-[#0046FE] hover:bg-[#E6EEFF] transition-colors"
           >
             <PlusCircle size={18} />새 그룹 생성
