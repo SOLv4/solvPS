@@ -73,7 +73,7 @@ export default function Sidebar({ user }: { user: any }) {
         {/* 구분선과 그룹 생성 버튼 */}
         <div className="pt-4 mt-4 border-t border-[#EAEAEA]">
           <Link
-            href="/group"
+            href="/group?new=1"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold bg-[#F5F8FF] text-[#0046FE] hover:bg-[#E6EEFF] transition-colors"
           >
             <PlusCircle size={18} />새 그룹 생성

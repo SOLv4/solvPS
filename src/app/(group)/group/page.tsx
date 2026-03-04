@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Users, PlusCircle, LogIn } from "lucide-react";
 
 export default function GroupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isNew = searchParams.get("new") === "1";
 
   const [createName, setCreateName] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
@@ -14,6 +16,30 @@ export default function GroupPage() {
   const [joinCode, setJoinCode] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState("");
+
+  const [checking, setChecking] = useState(!isNew);
+
+  useEffect(() => {
+    if (isNew) return;
+    fetch("/api/group")
+      .then((r) => r.json())
+      .then((groups) => {
+        if (Array.isArray(groups) && groups.length > 0) {
+          router.replace(`/group/${groups[0].id}`);
+        } else {
+          setChecking(false);
+        }
+      })
+      .catch(() => setChecking(false));
+  }, [router, isNew]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-[#666] text-sm animate-pulse">불러오는 중...</p>
+      </div>
+    );
+  }
 
   const handleCreate = async () => {
     if (!createName.trim()) return;
