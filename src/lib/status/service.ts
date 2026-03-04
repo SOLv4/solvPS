@@ -43,14 +43,14 @@ export async function getStatusStats(handle: string): Promise<StatsData> {
     }));
 
   const weakTags = tagStats
-    .filter((s) => !META_TAGS.has(s.tag.key) && s.total >= 100)
+    .filter((s) => !META_TAGS.has(s.tag.key) && s.total >= 300 && s.solved > 0)
     .map((s) => ({
       tag: s.tag.key,
       name: s.tag.displayNames.find((d) => d.language === "ko")?.name ?? s.tag.key,
       solved: s.solved,
       total: s.total,
       tried: s.tried,
-      solveRate: Math.round((s.solved / s.total) * 1000) / 10,
+      solveRate: s.solved,
     }))
     .sort((a, b) => a.solveRate - b.solveRate)
     .slice(0, 6);
@@ -131,6 +131,7 @@ export async function getStatusStats(handle: string): Promise<StatsData> {
       rating: user.rating,
       solvedCount: user.solvedCount,
       maxStreak: user.maxStreak,
+      rank: typeof user.rank === "number" ? user.rank : null,
     },
     radarTags,
     weakTags,

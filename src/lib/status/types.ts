@@ -6,6 +6,7 @@ export interface StatsData {
     rating: number;
     solvedCount: number;
     maxStreak: number;
+    rank: number | null;
   };
   radarTags: {
     tag: string;
