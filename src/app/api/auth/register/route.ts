@@ -7,7 +7,19 @@ export async function POST(req: Request) {
   try {
     const { email, password, name, boj_handle } = await req.json();
 
-    // 1. Better Auth를 통한 유저 생성
+    // 1. 백준 핸들 중복 여부 미리 확인
+    const existingBoj = await db.query.userBoj.findFirst({
+      where: (userBoj, { eq }) => eq(userBoj.bojHandle, boj_handle),
+    });
+
+    if (existingBoj) {
+      return NextResponse.json(
+        { error: "이미 등록된 백준 핸들입니다." },
+        { status: 400 },
+      );
+    }
+
+    // 2. Better Auth 유저 생성
     const user = await auth.api.signUpEmail({
       body: {
         email,

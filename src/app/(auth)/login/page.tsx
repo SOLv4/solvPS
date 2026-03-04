@@ -13,11 +13,11 @@ export default function LoginPage() {
       {
         email,
         password,
-        callbackURL: "/status",
+        callbackURL: "/dashboard",
       },
       {
         onSuccess: () => {
-          window.location.href = "/status";
+          window.location.href = "/dashboard";
         },
         onError: (ctx) => {
           console.error("Login error:", ctx.error);
@@ -123,7 +123,11 @@ export default function LoginPage() {
           아직 계정이 없으신가요?{" "}
           <Link
             href="/register"
-            style={{ color: "#2E67FE", textDecoration: "none", fontWeight: "600" }}
+            style={{
+              color: "#2E67FE",
+              textDecoration: "none",
+              fontWeight: "600",
+            }}
           >
             회원가입
           </Link>
