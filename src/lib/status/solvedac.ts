@@ -13,6 +13,7 @@ export interface UserInfo {
   rating: number;
   solvedCount: number;
   maxStreak: number;
+  rank?: number;
 }
 
 export interface TagStat {

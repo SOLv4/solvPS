@@ -33,7 +33,7 @@ export default function RivalSection({ myHandle }: { myHandle: string }) {
   };
 
   return (
-    <Card className="border-blue-100 shadow-sm">
+    <Card className="border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-gray-700">라이벌 비교</CardTitle>
         <CardDescription className="text-xs">주요 태그별 풀이 수 비교</CardDescription>
@@ -41,7 +41,7 @@ export default function RivalSection({ myHandle }: { myHandle: string }) {
       <CardContent className="space-y-4">
         <div className="flex gap-3">
           <Input
-            className="border-blue-200 focus-visible:ring-[#0046FE] placeholder:text-gray-400 text-sm"
+            className="border-blue-200 bg-white/90 focus-visible:ring-[#0046FE] placeholder:text-slate-400 text-sm"
             placeholder="비교할 상대 핸들 입력"
             value={rivalHandle}
             onChange={(e) => setRivalHandle(e.target.value)}
@@ -51,7 +51,7 @@ export default function RivalSection({ myHandle }: { myHandle: string }) {
             onClick={fetchRival}
             disabled={loading || !rivalHandle.trim()}
             variant="outline"
-            className="border-[#0046FE] text-[#0046FE] hover:bg-[#0046FE] hover:text-white shrink-0"
+            className="shrink-0 border-[#0046FE] text-[#0046FE] hover:bg-[#0046FE] hover:text-white"
           >
             {loading ? "비교 중..." : "비교하기"}
           </Button>

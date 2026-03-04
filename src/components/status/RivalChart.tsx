@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface CompareItem {
   tag: string;
@@ -17,56 +17,79 @@ interface RivalData {
 }
 
 export default function RivalChart({ data }: { data: RivalData }) {
-  const filtered = data.comparison.filter((d) => d.me > 0 || d.rival > 0);
-  const winning = data.comparison.filter((d) => d.diff > 0).length;
-  const losing = data.comparison.filter((d) => d.diff < 0).length;
-  const even = data.comparison.filter((d) => d.diff === 0 && (d.me > 0 || d.rival > 0)).length;
+  const filtered = data.comparison.filter((item) => item.me > 0 || item.rival > 0);
+  const winning = filtered.filter((item) => item.diff > 0).length;
+  const losing = filtered.filter((item) => item.diff < 0).length;
+  const even = filtered.filter((item) => item.diff === 0).length;
 
   return (
     <div className="space-y-4">
-      {/* 헤더 */}
-      <div className="flex justify-between text-sm">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#0046FE] inline-block" />
-          <span className="font-medium text-gray-700">@{data.me.handle}</span>
-          <span className="text-gray-400 text-xs">{data.me.tierName} · {data.me.rating}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-xs">{data.rival.tierName} · {data.rival.rating}</span>
-          <span className="font-medium text-gray-700">@{data.rival.handle}</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-[#2E67FE] inline-block" />
+      <div className="rounded-xl border border-blue-100 bg-[#F8FBFF] px-3.5 py-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1E56F0]" />
+            <span className="font-semibold text-slate-700">@{data.me.handle}</span>
+            <span className="text-xs text-slate-500">
+              {data.me.tierName} · {data.me.rating}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">
+              {data.rival.tierName} · {data.rival.rating}
+            </span>
+            <span className="font-semibold text-slate-700">@{data.rival.handle}</span>
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#6A91FF]" />
+          </div>
         </div>
       </div>
 
-      {/* 차트 */}
-      <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={filtered} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#EFF6FF" />
-          <XAxis dataKey="name" tick={{ fill: "#9CA3AF", fontSize: 11 }} />
-          <YAxis tick={{ fill: "#9CA3AF", fontSize: 11 }} />
-          <Tooltip
-            contentStyle={{ background: "#fff", border: "1px solid #DBEAFE", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,70,254,0.08)" }}
-            labelStyle={{ color: "#111827", fontWeight: 600 }}
-          />
-          <Legend wrapperStyle={{ fontSize: 12, color: "#6B7280" }} />
-          <Bar dataKey="me" name={`@${data.me.handle}`} fill="#0046FE" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="rival" name={`@${data.rival.handle}`} fill="#2E67FE" radius={[3, 3, 0, 0]} opacity={0.7} />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="h-[270px] rounded-2xl bg-gradient-to-b from-[#f8fbff] to-white p-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={filtered} margin={{ top: 6, right: 8, left: -20, bottom: 2 }}>
+            <defs>
+              <linearGradient id="rival-me-bar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1E56F0" stopOpacity={0.95} />
+                <stop offset="100%" stopColor="#3F75FF" stopOpacity={0.85} />
+              </linearGradient>
+              <linearGradient id="rival-opponent-bar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#8AAAFF" stopOpacity={0.95} />
+                <stop offset="100%" stopColor="#6A91FF" stopOpacity={0.85} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E7EEFF" vertical={false} />
+            <XAxis dataKey="name" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+            <Tooltip
+              cursor={{ fill: "rgba(236, 244, 255, 0.7)" }}
+              contentStyle={{
+                border: "1px solid #D9E6FF",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.97)",
+                boxShadow: "0 12px 30px -24px rgba(15,70,216,0.6)",
+              }}
+              formatter={(value, key) => {
+                if (key === "me") return [`${value}문제`, `@${data.me.handle}`];
+                return [`${value}문제`, `@${data.rival.handle}`];
+              }}
+            />
+            <Bar dataKey="me" name={`@${data.me.handle}`} fill="url(#rival-me-bar)" radius={[5, 5, 0, 0]} />
+            <Bar dataKey="rival" name={`@${data.rival.handle}`} fill="url(#rival-opponent-bar)" radius={[5, 5, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
-      {/* 요약 */}
-      <div className="grid grid-cols-3 gap-2 text-xs text-center">
-        <div className="bg-blue-50 border border-blue-100 rounded-xl py-3">
-          <p className="text-[#0046FE] font-bold text-lg">{winning}</p>
-          <p className="text-gray-400 mt-0.5">내가 앞선 태그</p>
+      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="rounded-xl border border-blue-100 bg-[#F5F8FF] py-3">
+          <p className="text-lg font-bold text-[#1248DA]">{winning}</p>
+          <p className="text-slate-500">내가 앞선 태그</p>
         </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-xl py-3">
-          <p className="text-gray-600 font-bold text-lg">{even}</p>
-          <p className="text-gray-400 mt-0.5">비슷한 태그</p>
+        <div className="rounded-xl border border-slate-200 bg-white py-3">
+          <p className="text-lg font-bold text-slate-700">{even}</p>
+          <p className="text-slate-500">비슷한 태그</p>
         </div>
-        <div className="bg-blue-50 border border-blue-100 rounded-xl py-3">
-          <p className="text-[#2E67FE] font-bold text-lg">{losing}</p>
-          <p className="text-gray-400 mt-0.5">라이벌이 앞선 태그</p>
+        <div className="rounded-xl border border-blue-100 bg-[#F5F8FF] py-3">
+          <p className="text-lg font-bold text-[#4B6FE0]">{losing}</p>
+          <p className="text-slate-500">라이벌 우위 태그</p>
         </div>
       </div>
     </div>
