@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { SearchIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  filterProblems,
   getMockProblems,
   getMockRoadmaps,
   tierPresetOptions,
@@ -32,8 +31,10 @@ import {
 } from "@/lib/mock"
 
 export default function TeamProblemsPage() {
-  const [problems] = useState<Problem[]>(() => getMockProblems())
+  const [problems, setProblems] = useState<Problem[]>([])
   const [roadmaps] = useState(() => getMockRoadmaps())
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState("")
 
   const [q, setQ] = useState("")
   const [tierPreset, setTierPreset] = useState<TierPreset>("all")
@@ -55,10 +56,46 @@ export default function TeamProblemsPage() {
     }
   )
 
-  const filtered = useMemo(
-    () => filterProblems(problems, { q, tierPreset, tagQuery }),
-    [problems, q, tierPreset, tagQuery]
-  )
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setIsLoading(true)
+      setLoadError("")
+      try {
+        const params = new URLSearchParams({
+          q,
+          tier: tierPreset,
+          tag: tagQuery,
+          page: "1",
+          size: "30",
+        })
+        const res = await fetch(`/api/problems/search?${params.toString()}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        })
+        if (!res.ok) {
+          throw new Error(`request failed: ${res.status}`)
+        }
+        const data = (await res.json()) as { items?: Problem[] }
+        if (Array.isArray(data.items)) {
+          setProblems(data.items)
+        }
+      } catch (error) {
+        if ((error as { name?: string }).name === "AbortError") {
+          return
+        }
+        setLoadError("solved.ac 검색 결과를 불러오지 못했습니다.")
+        setProblems([])
+      } finally {
+        setIsLoading(false)
+      }
+    }, 250)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [q, tierPreset, tagQuery])
 
   function handleOpenAddDialog(problemId: string) {
     setSelectedProblemId(problemId)
@@ -127,9 +164,12 @@ export default function TeamProblemsPage() {
 
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-lg">검색 결과 {filtered.length}개</CardTitle>
+          <CardTitle className="text-lg">검색 결과 {problems.length}개</CardTitle>
         </CardHeader>
         <CardContent>
+          {loadError ? (
+            <p className="mb-3 text-sm text-red-500">{loadError}</p>
+          ) : null}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] table-fixed">
               <thead>
@@ -142,7 +182,21 @@ export default function TeamProblemsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((problem) => {
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                      불러오는 중...
+                    </td>
+                  </tr>
+                ) : null}
+                {!isLoading && problems.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                      검색 결과가 없습니다.
+                    </td>
+                  </tr>
+                ) : null}
+                {!isLoading && problems.map((problem) => {
                   const inRoadmap = Boolean(problemRoadmapMap[problem.id])
                   return (
                     <tr key={problem.id} className="border-b last:border-0">

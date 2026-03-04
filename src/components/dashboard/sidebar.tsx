@@ -21,7 +21,8 @@ export default function Sidebar({ user }: { user: any }) {
   const menuItems = [
     { name: "내 통계", href: "/status", icon: BarChart2 },
     { name: "내 그룹", href: "/group", icon: Users },
-    { name: "로드맵", href: "/team/roadmaps", icon: BarChart2 },
+    { name: "로드맵", href: "/teams/1/roadmaps", icon: BarChart2 },
+    { name: "문제 검색", href: "/teams/1/problems", icon: BarChart2 },
   ];
 
   return (

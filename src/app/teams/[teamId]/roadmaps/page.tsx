@@ -1,7 +1,9 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { CalendarDaysIcon, PlusIcon } from "lucide-react"
+import Link from "next/link"
+import { useParams } from "next/navigation"
+import { CalendarDaysIcon, PlusIcon, Trash2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +26,8 @@ import { Input } from "@/components/ui/input"
 import { createMockRoadmap, getMockRoadmaps, type Roadmap } from "@/lib/mock"
 
 export default function TeamRoadmapsPage() {
+  const params = useParams<{ teamId: string }>()
+  const teamId = params?.teamId ?? "1"
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>(() => getMockRoadmaps())
   const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState("")
@@ -53,6 +57,10 @@ export default function TeamRoadmapsPage() {
     setTitle("")
     setDescription("")
     setCreateOpen(false)
+  }
+
+  function handleDeleteRoadmap(roadmapId: string) {
+    setRoadmaps((prev) => prev.filter((roadmap) => roadmap.id !== roadmapId))
   }
 
   return (
@@ -128,9 +136,23 @@ export default function TeamRoadmapsPage() {
               <div className="text-sm text-muted-foreground">
                 문제 수: <strong>{roadmap.problemsCount}</strong>
               </div>
-              <div className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                <CalendarDaysIcon className="size-4" />
-                {new Date(roadmap.createdAt).toLocaleDateString("ko-KR")}
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                  <CalendarDaysIcon className="size-4" />
+                  {new Date(roadmap.createdAt).toLocaleDateString("ko-KR")}
+                </div>
+                <Button asChild size="sm" variant="outline" className="rounded-2xl">
+                  <Link href={`/teams/${teamId}/roadmaps/${roadmap.id}`}>상세 보기</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-2xl text-red-600 hover:text-red-700"
+                  onClick={() => handleDeleteRoadmap(roadmap.id)}
+                >
+                  <Trash2Icon className="size-4" />
+                  삭제
+                </Button>
               </div>
             </CardContent>
           </Card>

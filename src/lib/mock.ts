@@ -89,6 +89,11 @@ export const mockProblems: Problem[] = [
   },
 ];
 
+export const mockRoadmapProblems: Record<string, string[]> = {
+  "rm-frontend-core": ["p-1001", "p-2557", "p-1260"],
+  "rm-two-pointer": ["p-1806", "p-14500"],
+};
+
 export function getMockRoadmaps(): Roadmap[] {
   return mockRoadmaps.map((roadmap) => ({ ...roadmap }));
 }
@@ -98,6 +103,19 @@ export function getMockProblems(): Problem[] {
     ...problem,
     tags: [...problem.tags],
   }));
+}
+
+export function getMockRoadmapById(roadmapId: string): Roadmap | null {
+  const roadmap = mockRoadmaps.find((item) => item.id === roadmapId);
+  return roadmap ? { ...roadmap } : null;
+}
+
+export function getMockProblemsByRoadmapId(roadmapId: string): Problem[] {
+  const ids = mockRoadmapProblems[roadmapId] ?? [];
+  const idSet = new Set(ids);
+  return mockProblems
+    .filter((problem) => idSet.has(problem.id))
+    .map((problem) => ({ ...problem, tags: [...problem.tags] }));
 }
 
 export function createMockRoadmap(input: {
