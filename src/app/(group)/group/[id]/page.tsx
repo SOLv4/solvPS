@@ -70,6 +70,7 @@ export default function GroupDashboard() {
     { problemId: number; latestCapturedAt: string; memberCount: number; submissionCount: number }[]
   >([]);
   const [compareLoading, setCompareLoading] = useState(false);
+  const [progress, setProgress] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetch("/api/group")
@@ -95,6 +96,26 @@ export default function GroupDashboard() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    fetch(`/api/group/${id}/progress`)
+      .then((r) => r.json())
+      .then((p) => { if (p && typeof p === "object") setProgress(p); })
+      .catch(() => {});
+  }, [id]);
+
+  const toggleProgress = async (stepId: number, completed: boolean) => {
+    setProgress((prev) => ({ ...prev, [stepId]: completed }));
+    try {
+      await fetch(`/api/group/${id}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepId, completed }),
+      });
+    } catch {
+      setProgress((prev) => ({ ...prev, [stepId]: !completed }));
+    }
+  };
 
   useEffect(() => {
     if (!data?.team.id) return;
@@ -388,7 +409,7 @@ export default function GroupDashboard() {
           )}
         </section>
 
-        <RoadmapSection roadmaps={data.roadmaps} />
+        <RoadmapSection roadmaps={data.roadmaps} progress={progress} onToggle={toggleProgress} />
       </div>
     </div>
   );
