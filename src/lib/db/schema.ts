@@ -85,6 +85,7 @@ export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
+  invite_code: varchar("invite_code", { length: 8 }).notNull().unique(),
   created_by: integer("created_by").references(() => users.id),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
