@@ -117,6 +117,15 @@ export default function RoadmapDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="border border-blue-200 bg-[#F2F7FF] text-[#0F46D8]">Lv {problem.level}</Badge>
+                  <Button asChild size="sm" variant="outline" className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]">
+                    <a
+                      href={`https://www.acmicpc.net/problem/${problem.bojId}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      문제 보기
+                    </a>
+                  </Button>
                   <Button size="sm" variant="outline" className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleDeleteProblem(problem.id)}>
                     <Trash2 className="size-4" />
                     삭제
