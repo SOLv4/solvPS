@@ -49,6 +49,9 @@
 
 :root {
   --radius: 0.75rem;
+  --brand: #0046fe;
+  --brand-2: #2e67fe;
+  --brand-bg: #ffffff;
   /* #FFFFFF */
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0 0);

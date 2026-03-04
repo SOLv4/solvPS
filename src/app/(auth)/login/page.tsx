@@ -13,11 +13,11 @@ export default function LoginPage() {
       {
         email,
         password,
-        callbackURL: "/dashboard",
+        callbackURL: "/status",
       },
       {
         onSuccess: () => {
-          window.location.href = "/dashboard";
+          window.location.href = "/status";
         },
         onError: (ctx) => {
           console.error("Login error:", ctx.error);
