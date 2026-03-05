@@ -14,37 +14,48 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { tierPresetOptions, type TierPreset } from "@/lib/mock";
+import {
+  getMockProblems,
+  getMockRoadmaps,
+  tagPresetOptions,
+  tierPresetOptions,
+  type Problem,
+  type TagPreset,
+  type TierPreset,
+} from "@/lib/mock";
 
-type Problem = {
-  id: string;
-  bojId: number;
-  title: string;
-  level: number;
-  tags: string[];
-};
+const PAGE_SIZE = 20;
 
-type Roadmap = {
-  id: number;
-  title: string;
-};
+const TIER_NAMES = [
+  "Unrated",
+  "브론즈",
+  "실버",
+  "골드",
+  "플래티넘",
+  "다이아몬드",
+  "루비",
+];
+const GRADE_LABELS = ["", "V", "IV", "III", "II", "I"];
 
-type Group = {
-  id: number;
-  name: string;
-};
-
-const tierBand = (level: number) => {
-  if (level <= 5) return "브론즈";
-  if (level <= 10) return "실버";
-  if (level <= 15) return "골드";
-  return "상위 티어";
+const tierLabel = (level: number) => {
+  if (level === 0) return "Unrated";
+  const tier = Math.ceil(level / 5); // 1=브론즈 ~ 6=루비
+  const grade = 5 - ((level - 1) % 5); // V=1, IV=2, III=3, II=4, I=5
+  return `${TIER_NAMES[tier]} ${GRADE_LABELS[grade]}`;
 };
 
 export default function ProblemsPage() {
@@ -53,11 +64,12 @@ export default function ProblemsPage() {
   const [groupId, setGroupId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const [actionError, setActionError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLastPage, setIsLastPage] = useState(false);
 
   const [q, setQ] = useState("");
   const [tierPreset, setTierPreset] = useState<TierPreset>("all");
-  const [tagQuery, setTagQuery] = useState("");
+  const [tagPreset, setTagPreset] = useState<TagPreset>("all");
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
@@ -134,17 +146,23 @@ export default function ProblemsPage() {
         const params = new URLSearchParams({
           q,
           tier: tierPreset,
-          tag: tagQuery,
-          page: "1",
-          size: "30",
+          tag: tagPreset === "all" ? "" : tagPreset,
+          page: String(currentPage),
+          size: String(PAGE_SIZE),
         });
         const res = await fetch(`/api/problems/search?${params.toString()}`, {
           signal: controller.signal,
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`request failed: ${res.status}`);
-        const data = (await res.json()) as { items?: Problem[] };
-        setProblems(Array.isArray(data.items) ? data.items : []);
+        const data = (await res.json()) as {
+          items?: Problem[];
+          count?: number;
+        };
+        if (Array.isArray(data.items)) {
+          setProblems(data.items);
+          setIsLastPage(data.items.length < PAGE_SIZE);
+        }
       } catch (error) {
         if ((error as { name?: string }).name === "AbortError") return;
         setLoadError("solved.ac 검색 결과를 불러오지 못했습니다.");
@@ -158,7 +176,7 @@ export default function ProblemsPage() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [q, tierPreset, tagQuery]);
+  }, [q, tierPreset, tagPreset, currentPage]);
 
   const summary = useMemo(() => {
     const inRoadmapCount = problems.filter((problem) => {
@@ -270,8 +288,12 @@ export default function ProblemsPage() {
           <div className="space-y-5">
             <div>
               <p className="text-xs font-medium text-gray-400">문제 검색</p>
-              <h1 className="mt-1 text-2xl font-bold text-gray-900">문제 검색</h1>
-              <p className="mt-1 text-sm text-gray-400">문제를 검색하고 기존 로드맵에 바로 추가하세요.</p>
+              <h1 className="mt-1 text-2xl font-bold text-gray-900">
+                문제 검색
+              </h1>
+              <p className="mt-1 text-sm text-gray-400">
+                난이도/태그 기준으로 문제를 필터링하고 바로 로드맵에 편입하세요.
+              </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -312,7 +334,7 @@ export default function ProblemsPage() {
             <Filter size={17} className="text-[#0F46D8]" />
             <h2 className="text-base font-semibold text-slate-800">필터</h2>
           </div>
-          <div className="grid gap-3 lg:grid-cols-[1.2fr_0.7fr_1fr]">
+          <div className="grid gap-3 lg:grid-cols-[1.5fr_0.5fr_0.7fr]">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
               <Input
@@ -334,12 +356,21 @@ export default function ProblemsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Input
-              value={tagQuery}
-              onChange={(event) => setTagQuery(event.target.value)}
-              placeholder="태그 필터 (예: 그래프, DP)"
-              className="rounded-xl border-gray-200 bg-white"
-            />
+            <Select
+              value={tagPreset}
+              onValueChange={(value) => setTagPreset(value as TagPreset)}
+            >
+              <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                <SelectValue placeholder="태그 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {tagPresetOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </section>
 
@@ -374,11 +405,10 @@ export default function ProblemsPage() {
                       <p className="text-sm font-semibold text-slate-800">
                         {problem.bojId}. {problem.title}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">난이도 대역: {tierBand(problem.level)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="border border-blue-200 bg-[#F2F7FF] text-[#0F46D8]">
-                        Lv {problem.level}
+                        {tierLabel(problem.level)}
                       </Badge>
                       <Badge
                         className={
@@ -387,7 +417,9 @@ export default function ProblemsPage() {
                             : "border border-slate-200 bg-white text-slate-600"
                         }
                       >
-                        {inRoadmap ? `로드맵 편입 (${roadmapIds.length})` : "미편입"}
+                        {inRoadmap
+                          ? `로드맵 편입 (${roadmapIds.length})`
+                          : "미편입"}
                       </Badge>
                     </div>
                   </div>
@@ -401,7 +433,11 @@ export default function ProblemsPage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button asChild variant="outline" className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                    >
                       <a
                         href={`https://www.acmicpc.net/problem/${problem.bojId}`}
                         target="_blank"
@@ -432,6 +468,63 @@ export default function ProblemsPage() {
               );
             })}
         </section>
+
+        {/* 페이지네이션 */}
+        {currentPage > 1 || !isLastPage ? (
+          <Pagination className="mt-2">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) setCurrentPage((p) => p - 1);
+                  }}
+                  className={
+                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                  }
+                />
+              </PaginationItem>
+              {Array.from(
+                {
+                  length: Math.min(
+                    5,
+                    isLastPage ? currentPage : currentPage + 2,
+                  ),
+                },
+                (_, i) => {
+                  const start = Math.max(1, currentPage - 2);
+                  const page = start + i;
+                  if (isLastPage && page > currentPage) return null;
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        href="#"
+                        isActive={page === currentPage}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(page);
+                        }}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                },
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!isLastPage) setCurrentPage((p) => p + 1);
+                  }}
+                  className={isLastPage ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        ) : null}
 
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogContent className="rounded-2xl">
