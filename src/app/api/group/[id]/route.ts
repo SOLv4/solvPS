@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { teams, teamMembers, users, userBoj, roadmaps, roadmapSteps } from "@/lib/db/schema";
+import { teams, teamMembers, users, userBoj, roadmaps, roadmapSteps, roadmapProblems } from "@/lib/db/schema";
 import { getUserInfo, TIER_NAME } from "@/lib/status/solvedac";
 
 export async function GET(
@@ -70,6 +70,14 @@ export async function GET(
 
   const roadmapsWithSteps = await Promise.all(
     roadmapList.map(async (roadmap) => {
+      const [problemCountRow] = await db
+        .select({
+          count: sql<number>`count(*)`,
+        })
+        .from(roadmapSteps)
+        .innerJoin(roadmapProblems, eq(roadmapProblems.step_id, roadmapSteps.id))
+        .where(eq(roadmapSteps.roadmap_id, roadmap.id));
+
       const steps = await db
         .select({
           id: roadmapSteps.id,
@@ -81,7 +89,14 @@ export async function GET(
         .where(eq(roadmapSteps.roadmap_id, roadmap.id))
         .orderBy(roadmapSteps.order);
 
-      return { id: roadmap.id, title: roadmap.title, description: roadmap.description, steps };
+      return {
+        id: roadmap.id,
+        title: roadmap.title,
+        description: roadmap.description,
+        createdAt: roadmap.created_at,
+        steps,
+        problemsCount: Number(problemCountRow?.count ?? 0),
+      };
     })
   );
 

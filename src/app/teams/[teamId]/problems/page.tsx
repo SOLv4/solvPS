@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { Filter, Layers3, Search, Sparkles, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,13 +21,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  getMockProblems,
-  getMockRoadmaps,
-  tierPresetOptions,
-  type Problem,
-  type TierPreset,
-} from "@/lib/mock";
+import { tierPresetOptions, type TierPreset } from "@/lib/mock";
+
+type Problem = {
+  id: string;
+  bojId: number;
+  title: string;
+  level: number;
+  tags: string[];
+};
+
+type TeamRoadmap = {
+  id: number;
+  title: string;
+  description: string | null;
+  problemsCount: number;
+};
 
 const tierBand = (level: number) => {
   if (level <= 5) return "브론즈";
@@ -36,35 +46,79 @@ const tierBand = (level: number) => {
 };
 
 export default function TeamProblemsPage() {
+  const params = useParams<{ teamId: string }>();
+  const teamId = params?.teamId ?? "1";
+
   const [problems, setProblems] = useState<Problem[]>([]);
-  const [roadmaps] = useState(() => getMockRoadmaps());
+  const [roadmaps, setRoadmaps] = useState<TeamRoadmap[]>([]);
+  const [problemRoadmapMap, setProblemRoadmapMap] = useState<
+    Record<string, number[]>
+  >({});
+
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const [q, setQ] = useState("");
   const [tierPreset, setTierPreset] = useState<TierPreset>("all");
   const [tagQuery, setTagQuery] = useState("");
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
-    null,
-  );
+  const [selectedProblemBojId, setSelectedProblemBojId] = useState<
+    number | null
+  >(null);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>("");
 
-  const [problemRoadmapMap, setProblemRoadmapMap] = useState<
-    Record<string, string[]>
-  >(() => {
-    const defaultRoadmapId = getMockRoadmaps()[0]?.id ?? "";
-    return getMockProblems().reduce<Record<string, string[]>>(
-      (acc, problem) => {
-      if (problem.inRoadmap && defaultRoadmapId) {
-          acc[problem.id] = [defaultRoadmapId];
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadRoadmapState = async () => {
+      try {
+        const [groupRes, mapRes] = await Promise.all([
+          fetch(`/api/group/${teamId}`, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+          fetch(`/api/group/${teamId}/roadmap-problems`, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (groupRes.ok) {
+          const groupData = (await groupRes.json()) as {
+            roadmaps?: Array<{
+              id: number;
+              title: string;
+              description: string | null;
+              problemsCount?: number;
+            }>;
+          };
+          setRoadmaps(
+            (groupData.roadmaps ?? []).map((roadmap) => ({
+              id: roadmap.id,
+              title: roadmap.title,
+              description: roadmap.description,
+              problemsCount: roadmap.problemsCount ?? 0,
+            })),
+          );
+        }
+
+        if (mapRes.ok) {
+          const mapData = (await mapRes.json()) as Record<string, number[]>;
+          setProblemRoadmapMap(mapData);
+        }
+      } catch (error) {
+        if ((error as { name?: string }).name !== "AbortError") {
+          setActionError("로드맵 상태를 불러오지 못했습니다.");
+        }
       }
-      return acc;
-      },
-      {},
-    );
-  });
+    };
+
+    void loadRoadmapState();
+
+    return () => controller.abort();
+  }, [teamId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -104,7 +158,7 @@ export default function TeamProblemsPage() {
   const summary = useMemo(() => {
     const mapped = problems.map((problem) => ({
       ...problem,
-      inRoadmap: (problemRoadmapMap[problem.id] ?? []).length > 0,
+      inRoadmap: (problemRoadmapMap[String(problem.bojId)] ?? []).length > 0,
     }));
     const inRoadmapCount = mapped.filter((problem) => problem.inRoadmap).length;
     const avgLevel =
@@ -129,39 +183,88 @@ export default function TeamProblemsPage() {
     };
   }, [problems, problemRoadmapMap]);
 
-  function handleOpenAddDialog(problemId: string) {
-    setSelectedProblemId(problemId);
-    const alreadySelected = problemRoadmapMap[problemId] ?? [];
+  function handleOpenAddDialog(problemBojId: number) {
+    setSelectedProblemBojId(problemBojId);
+    const alreadySelected = problemRoadmapMap[String(problemBojId)] ?? [];
     const firstAvailableRoadmapId =
       roadmaps.find((roadmap) => !alreadySelected.includes(roadmap.id))?.id ??
       "";
-    setSelectedRoadmapId(firstAvailableRoadmapId);
+    setSelectedRoadmapId(String(firstAvailableRoadmapId));
     setAddDialogOpen(true);
+    setActionError("");
   }
 
-  function handleAddToRoadmap() {
-    if (!selectedProblemId || !selectedRoadmapId) return;
-    setProblemRoadmapMap((prev) => {
-      const prevIds = prev[selectedProblemId] ?? [];
-      if (prevIds.includes(selectedRoadmapId)) return prev;
-      return {
-        ...prev,
-        [selectedProblemId]: [...prevIds, selectedRoadmapId],
-      };
-    });
-    setAddDialogOpen(false);
+  async function handleAddToRoadmap() {
+    if (!selectedProblemBojId || !selectedRoadmapId) return;
+
+    const selectedProblem = problems.find(
+      (problem) => problem.bojId === selectedProblemBojId,
+    );
+    if (!selectedProblem) return;
+
+    setActionError("");
+    try {
+      const res = await fetch(`/api/group/${teamId}/roadmap-problems`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bojId: selectedProblem.bojId,
+          title: selectedProblem.title,
+          level: selectedProblem.level,
+          roadmapId: Number(selectedRoadmapId),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "로드맵 담기 실패");
+      }
+
+      setProblemRoadmapMap((prev) => {
+        const key = String(selectedProblemBojId);
+        const prevIds = prev[key] ?? [];
+        const targetRoadmapId = Number(selectedRoadmapId);
+        if (prevIds.includes(targetRoadmapId)) return prev;
+        return { ...prev, [key]: [...prevIds, targetRoadmapId] };
+      });
+
+      setAddDialogOpen(false);
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "로드맵 담기 실패",
+      );
+    }
   }
 
-  function handleRemoveFromRoadmap(problemId: string) {
-    setProblemRoadmapMap((prev) => {
-      const next = { ...prev };
-      delete next[problemId];
-      return next;
-    });
+  async function handleRemoveFromRoadmap(problemBojId: number) {
+    const roadmapIds = problemRoadmapMap[String(problemBojId)] ?? [];
+    if (roadmapIds.length === 0) return;
+
+    setActionError("");
+    try {
+      await Promise.all(
+        roadmapIds.map(async (roadmapId) => {
+          const res = await fetch(`/api/group/${teamId}/roadmap-problems`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bojId: problemBojId, roadmapId }),
+          });
+          if (!res.ok) throw new Error("로드맵 제거 실패");
+        }),
+      );
+
+      setProblemRoadmapMap((prev) => {
+        const next = { ...prev };
+        delete next[String(problemBojId)];
+        return next;
+      });
+    } catch {
+      setActionError("문제를 로드맵에서 제거하지 못했습니다.");
+    }
   }
 
-  const selectedProblemRoadmapIds = selectedProblemId
-    ? problemRoadmapMap[selectedProblemId] ?? []
+  const selectedProblemRoadmapIds = selectedProblemBojId
+    ? (problemRoadmapMap[String(selectedProblemBojId)] ?? [])
     : [];
   const availableRoadmaps = roadmaps.filter(
     (roadmap) => !selectedProblemRoadmapIds.includes(roadmap.id),
@@ -173,9 +276,7 @@ export default function TeamProblemsPage() {
         <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
           <div className="space-y-5">
             <div>
-              <p className="text-xs font-medium text-gray-400">
-                문제 검색
-              </p>
+              <p className="text-xs font-medium text-gray-400">문제 검색</p>
               <h1 className="mt-1 text-2xl font-bold text-gray-900">
                 문제 검색
               </h1>
@@ -260,6 +361,9 @@ export default function TeamProblemsPage() {
           {loadError ? (
             <p className="text-sm text-red-500">{loadError}</p>
           ) : null}
+          {actionError ? (
+            <p className="text-sm text-red-500">{actionError}</p>
+          ) : null}
           {isLoading ? (
             <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
               검색 결과를 불러오는 중...
@@ -273,7 +377,7 @@ export default function TeamProblemsPage() {
 
           {!isLoading &&
             problems.map((problem) => {
-              const roadmapIds = problemRoadmapMap[problem.id] ?? [];
+              const roadmapIds = problemRoadmapMap[String(problem.bojId)] ?? [];
               const inRoadmap = roadmapIds.length > 0;
               return (
                 <article
@@ -300,7 +404,9 @@ export default function TeamProblemsPage() {
                             : "border border-slate-200 bg-white text-slate-600"
                         }
                       >
-                        {inRoadmap ? `로드맵 편입 (${roadmapIds.length})` : "미편입"}
+                        {inRoadmap
+                          ? `로드맵 편입 (${roadmapIds.length})`
+                          : "미편입"}
                       </Badge>
                     </div>
                   </div>
@@ -317,7 +423,11 @@ export default function TeamProblemsPage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button asChild variant="outline" className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                    >
                       <a
                         href={`https://www.acmicpc.net/problem/${problem.bojId}`}
                         target="_blank"
@@ -328,7 +438,7 @@ export default function TeamProblemsPage() {
                     </Button>
                     <Button
                       className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
-                      onClick={() => handleOpenAddDialog(problem.id)}
+                      onClick={() => handleOpenAddDialog(problem.bojId)}
                     >
                       로드맵에 담기
                     </Button>
@@ -336,7 +446,9 @@ export default function TeamProblemsPage() {
                       <Button
                         variant="outline"
                         className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleRemoveFromRoadmap(problem.id)}
+                        onClick={() =>
+                          void handleRemoveFromRoadmap(problem.bojId)
+                        }
                       >
                         모두 빼기
                       </Button>
@@ -362,7 +474,7 @@ export default function TeamProblemsPage() {
               </SelectTrigger>
               <SelectContent>
                 {availableRoadmaps.map((roadmap) => (
-                  <SelectItem key={roadmap.id} value={roadmap.id}>
+                  <SelectItem key={roadmap.id} value={String(roadmap.id)}>
                     {roadmap.title}
                   </SelectItem>
                 ))}
@@ -378,7 +490,7 @@ export default function TeamProblemsPage() {
                 취소
               </Button>
               <Button
-                onClick={handleAddToRoadmap}
+                onClick={() => void handleAddToRoadmap()}
                 disabled={!selectedRoadmapId || availableRoadmaps.length === 0}
                 className="bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
               >
@@ -391,4 +503,3 @@ export default function TeamProblemsPage() {
     </div>
   );
 }
-

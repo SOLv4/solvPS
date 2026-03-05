@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth/index";
 import {
   roadmaps,
   roadmapSteps,
   roadmapProblems,
   problems,
-  teamMembers,
 } from "@/lib/db/schema";
 
 type Params = { params: Promise<{ id: string }> };
@@ -19,10 +17,36 @@ async function getTeamId(params: Params["params"]) {
 }
 
 // GET /api/group/[id]/roadmap-problems
-// 이 팀의 모든 로드맵에 담긴 문제 목록 { [bojId]: roadmapId }
+// - roadmapId 미지정: 이 팀의 모든 로드맵 매핑 { [bojId]: roadmapId[] }
+// - roadmapId 지정: 해당 로드맵의 문제 목록
 export async function GET(_req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
+
+  const roadmapIdParam = _req.nextUrl.searchParams.get("roadmapId");
+  const roadmapId = roadmapIdParam ? Number(roadmapIdParam) : null;
+
+  if (roadmapIdParam && (roadmapId == null || Number.isNaN(roadmapId))) {
+    return NextResponse.json({ error: "Invalid roadmap id" }, { status: 400 });
+  }
+
+  if (roadmapId) {
+    const rows = await db
+      .select({
+        problemId: problems.id,
+        bojId: problems.boj_id,
+        title: problems.title,
+        level: problems.level,
+      })
+      .from(roadmapProblems)
+      .innerJoin(roadmapSteps, eq(roadmapProblems.step_id, roadmapSteps.id))
+      .innerJoin(roadmaps, eq(roadmapSteps.roadmap_id, roadmaps.id))
+      .innerJoin(problems, eq(roadmapProblems.problem_id, problems.id))
+      .where(and(eq(roadmaps.team_id, teamId), eq(roadmaps.id, roadmapId)))
+      .orderBy(roadmapProblems.order);
+
+    return NextResponse.json({ items: rows });
+  }
 
   const rows = await db
     .select({ bojId: problems.boj_id, roadmapId: roadmaps.id })
@@ -32,9 +56,12 @@ export async function GET(_req: NextRequest, ctx: Params) {
     .innerJoin(problems, eq(roadmapProblems.problem_id, problems.id))
     .where(eq(roadmaps.team_id, teamId));
 
-  const map: Record<number, number> = {};
+  const map: Record<number, number[]> = {};
   for (const row of rows) {
-    map[row.bojId] = row.roadmapId;
+    if (!map[row.bojId]) {
+      map[row.bojId] = [];
+    }
+    map[row.bojId].push(row.roadmapId);
   }
   return NextResponse.json(map);
 }
@@ -45,21 +72,6 @@ export async function POST(req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
 
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const isMember = await db
-    .select({ id: teamMembers.id })
-    .from(teamMembers)
-    .where(
-      and(
-        eq(teamMembers.team_id, teamId),
-        eq(teamMembers.user_id, Number(session.user.id))
-      )
-    )
-    .then((r) => r.length > 0);
-  if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
   const { bojId, title, level, roadmapId } = (await req.json()) as {
     bojId: number;
     title: string;
@@ -69,6 +81,15 @@ export async function POST(req: NextRequest, ctx: Params) {
 
   if (!bojId || !title || level == null || !roadmapId) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  const [targetRoadmap] = await db
+    .select({ id: roadmaps.id })
+    .from(roadmaps)
+    .where(and(eq(roadmaps.id, roadmapId), eq(roadmaps.team_id, teamId)));
+
+  if (!targetRoadmap) {
+    return NextResponse.json({ error: "Roadmap not found in this team" }, { status: 404 });
   }
 
   // 1. 문제 upsert
@@ -126,13 +147,19 @@ export async function DELETE(req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
 
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { bojId, roadmapId } = (await req.json()) as {
     bojId: number;
     roadmapId: number;
   };
+
+  const [targetRoadmap] = await db
+    .select({ id: roadmaps.id })
+    .from(roadmaps)
+    .where(and(eq(roadmaps.id, roadmapId), eq(roadmaps.team_id, teamId)));
+
+  if (!targetRoadmap) {
+    return NextResponse.json({ error: "Roadmap not found in this team" }, { status: 404 });
+  }
 
   const [problem] = await db
     .select({ id: problems.id })
