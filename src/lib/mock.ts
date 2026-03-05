@@ -17,13 +17,41 @@ export type Problem = {
   inRoadmap?: boolean;
 };
 
-export type TierPreset = "all" | "1-5" | "6-10" | "11-15";
+export type TierPreset = "all" | "1-5" | "6-10" | "11-15" | "16-20" | "21-25" | "26-30";
 
 export const tierPresetOptions: Array<{ value: TierPreset; label: string }> = [
   { value: "all", label: "전체" },
-  { value: "1-5", label: "1-5" },
-  { value: "6-10", label: "6-10" },
-  { value: "11-15", label: "11-15" },
+  { value: "1-5", label: "브론즈" },
+  { value: "6-10", label: "실버" },
+  { value: "11-15", label: "골드" },
+  { value: "16-20", label: "플래티넘" },
+  { value: "21-25", label: "다이아몬드" },
+  { value: "26-30", label: "루비" },
+];
+
+export type TagPreset = "all" | "implementation" | "greedy" | "dp" | "graphs" | "bruteforcing" | "sorting" | "binary_search" | "trees" | "math" | "string" | "two_pointer" | "data_structures" | "simulation" | "backtracking" | "bitmask" | "bfs" | "dijkstra" | "prefix_sum" | "segtree";
+
+export const tagPresetOptions: Array<{ value: TagPreset; label: string }> = [
+  { value: "all", label: "전체" },
+  { value: "implementation", label: "구현" },
+  { value: "greedy", label: "그리디" },
+  { value: "dp", label: "다이나믹 프로그래밍" },
+  { value: "graphs", label: "그래프" },
+  { value: "bruteforcing", label: "브루트포스" },
+  { value: "sorting", label: "정렬" },
+  { value: "binary_search", label: "이분 탐색" },
+  { value: "trees", label: "트리" },
+  { value: "math", label: "수학" },
+  { value: "string", label: "문자열" },
+  { value: "two_pointer", label: "두 포인터" },
+  { value: "data_structures", label: "자료 구조" },
+  { value: "simulation", label: "시뮬레이션" },
+  { value: "backtracking", label: "백트래킹" },
+  { value: "bitmask", label: "비트마스킹" },
+  { value: "bfs", label: "너비 우선 탐색 (BFS)" },
+  { value: "dijkstra", label: "다익스트라" },
+  { value: "prefix_sum", label: "누적 합" },
+  { value: "segtree", label: "세그먼트 트리" },
 ];
 
 export const mockRoadmaps: Roadmap[] = [
@@ -134,16 +162,13 @@ export function createMockRoadmap(input: {
 }
 
 export function matchesTierPreset(level: number, preset: TierPreset): boolean {
-  if (preset === "all") {
-    return true;
-  }
-  if (preset === "1-5") {
-    return level >= 1 && level <= 5;
-  }
-  if (preset === "6-10") {
-    return level >= 6 && level <= 10;
-  }
-  return level >= 11 && level <= 15;
+  if (preset === "all") return true;
+  if (preset === "1-5") return level >= 1 && level <= 5;
+  if (preset === "6-10") return level >= 6 && level <= 10;
+  if (preset === "11-15") return level >= 11 && level <= 15;
+  if (preset === "16-20") return level >= 16 && level <= 20;
+  if (preset === "21-25") return level >= 21 && level <= 25;
+  return level >= 26 && level <= 30;
 }
 
 export function filterProblems(

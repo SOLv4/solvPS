@@ -17,6 +17,9 @@ function tierExprFromPreset(preset: string) {
   if (preset === "1-5") return "tier:1..5";
   if (preset === "6-10") return "tier:6..10";
   if (preset === "11-15") return "tier:11..15";
+  if (preset === "16-20") return "tier:16..20";
+  if (preset === "21-25") return "tier:21..25";
+  if (preset === "26-30") return "tier:26..30";
   return "tier:1..30";
 }
 
@@ -81,7 +84,11 @@ export async function GET(request: NextRequest) {
       const startPage = Math.max(1, Number(page) || 1);
       const maxPagesToScan = 8;
 
-      for (let currentPage = startPage; currentPage < startPage + maxPagesToScan; currentPage += 1) {
+      for (
+        let currentPage = startPage;
+        currentPage < startPage + maxPagesToScan;
+        currentPage += 1
+      ) {
         const params = new URLSearchParams({
           query: baseQuery,
           page: String(currentPage),
