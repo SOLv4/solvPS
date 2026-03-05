@@ -1,50 +1,196 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { ArrowLeft, Layers3, Tag, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { ArrowLeft, BookOpen, Check, Layers3, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getMockProblemsByRoadmapId, getMockRoadmapById, type Problem } from "@/lib/mock";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const levelLabel = (level: number) => {
-  if (level <= 5) return "Bronze";
-  if (level <= 10) return "Silver";
-  if (level <= 15) return "Gold";
-  return "High";
+interface Problem {
+  bojId: number;
+  title: string;
+  level: number;
+}
+
+interface Step {
+  id: number;
+  order: number;
+  title: string;
+  description: string | null;
+  problems: Problem[];
+}
+
+interface RoadmapInfo {
+  id: number;
+  title: string;
+  description: string | null;
+}
+
+const tierInfo = (level: number): { label: string; color: string } => {
+  if (level === 0) return { label: "Unrated", color: "bg-gray-100 text-gray-500 border-gray-200" };
+  if (level <= 5) return { label: "Bronze", color: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (level <= 10) return { label: "Silver", color: "bg-slate-100 text-slate-600 border-slate-200" };
+  if (level <= 15) return { label: "Gold", color: "bg-yellow-50 text-yellow-700 border-yellow-200" };
+  if (level <= 20) return { label: "Platinum", color: "bg-teal-50 text-teal-700 border-teal-200" };
+  return { label: "Diamond+", color: "bg-blue-50 text-blue-700 border-blue-200" };
 };
 
 export default function RoadmapDetailPage() {
-  const params = useParams<{ teamId: string; roadmapId: string }>();
-  const teamId = params?.teamId ?? "1";
+  const params = useParams<{ roadmapId: string }>();
+  const searchParams = useSearchParams();
   const roadmapId = params?.roadmapId ?? "";
-  const roadmap = getMockRoadmapById(roadmapId);
-  const [problems, setProblems] = useState<Problem[]>(() => getMockProblemsByRoadmapId(roadmapId));
+
+  const [groupId, setGroupId] = useState<number | null>(
+    searchParams.get("groupId") ? Number(searchParams.get("groupId")) : null
+  );
+  const [roadmap, setRoadmap] = useState<RoadmapInfo | null>(null);
+  const [steps, setSteps] = useState<Step[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // 스텝 추가 인라인 상태
+  const [isAddingStep, setIsAddingStep] = useState(false);
+  const [newStepTitle, setNewStepTitle] = useState("");
+  const [addingStep, setAddingStep] = useState(false);
+  const newStepInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (groupId) return;
+    fetch("/api/group")
+      .then((r) => r.json())
+      .then((groups) => {
+        if (Array.isArray(groups) && groups.length > 0) {
+          setGroupId(groups[0].id);
+        } else {
+          setError("소속된 그룹이 없습니다.");
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        setError("그룹 정보를 불러오지 못했습니다.");
+        setLoading(false);
+      });
+  }, [groupId]);
+
+  useEffect(() => {
+    if (!groupId || !roadmapId) return;
+    setLoading(true);
+    Promise.all([
+      fetch(`/api/group/${groupId}`).then((r) => r.json()),
+      fetch(`/api/group/${groupId}/roadmap-problems?roadmapId=${roadmapId}`).then((r) => r.json()),
+    ])
+      .then(([groupData, stepsData]) => {
+        const found = (groupData.roadmaps ?? []).find(
+          (r: RoadmapInfo) => r.id === Number(roadmapId)
+        );
+        setRoadmap(found ?? null);
+        setSteps(stepsData.steps ?? []);
+      })
+      .catch(() => setError("데이터를 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
+  }, [groupId, roadmapId]);
+
+  useEffect(() => {
+    if (isAddingStep) newStepInputRef.current?.focus();
+  }, [isAddingStep]);
 
   const summary = useMemo(() => {
-    const tagCount = new Set(problems.flatMap((problem) => problem.tags)).size;
-    const hardest = Math.max(...problems.map((problem) => problem.level), 0);
+    const allProblems = steps.flatMap((s) => s.problems);
     return {
-      count: problems.length,
-      tagCount,
-      hardest,
+      stepCount: steps.length,
+      problemCount: allProblems.length,
+      hardest: Math.max(...allProblems.map((p) => p.level), 0),
     };
-  }, [problems]);
+  }, [steps]);
 
-  function handleDeleteProblem(problemId: string) {
-    setProblems((prev) => prev.filter((problem) => problem.id !== problemId));
+  async function handleAddStep() {
+    if (!newStepTitle.trim() || !groupId) return;
+    setAddingStep(true);
+    try {
+      const res = await fetch(`/api/group/${groupId}/roadmap-steps`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapId: Number(roadmapId), title: newStepTitle.trim() }),
+      });
+      const step = await res.json();
+      setSteps((prev) => [...prev, { ...step, problems: [] }]);
+      setNewStepTitle("");
+      setIsAddingStep(false);
+    } catch {
+      // 실패 시 무시
+    } finally {
+      setAddingStep(false);
+    }
   }
 
-  if (!roadmap) {
+  async function handleDeleteProblem(bojId: number) {
+    setSteps((prev) =>
+      prev.map((s) => ({ ...s, problems: s.problems.filter((p) => p.bojId !== bojId) }))
+    );
+    try {
+      await fetch(`/api/group/${groupId}/roadmap-problems`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bojId, roadmapId: Number(roadmapId) }),
+      });
+    } catch {
+      fetch(`/api/group/${groupId}/roadmap-problems?roadmapId=${roadmapId}`)
+        .then((r) => r.json())
+        .then((d) => setSteps(d.steps ?? []));
+    }
+  }
+
+  async function handleMoveProblem(bojId: number, fromStepId: number, toStepId: number) {
+    // 낙관적 업데이트
+    setSteps((prev) => {
+      const problem = prev
+        .find((s) => s.id === fromStepId)
+        ?.problems.find((p) => p.bojId === bojId);
+      if (!problem) return prev;
+      return prev.map((s) => {
+        if (s.id === fromStepId) return { ...s, problems: s.problems.filter((p) => p.bojId !== bojId) };
+        if (s.id === toStepId) return { ...s, problems: [...s.problems, problem] };
+        return s;
+      });
+    });
+    try {
+      await fetch(`/api/group/${groupId}/roadmap-problems`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bojId, fromStepId, toStepId }),
+      });
+    } catch {
+      fetch(`/api/group/${groupId}/roadmap-problems?roadmapId=${roadmapId}`)
+        .then((r) => r.json())
+        .then((d) => setSteps(d.steps ?? []));
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center">
+        <p className="animate-pulse text-sm text-gray-400">불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (error || (!loading && !roadmap)) {
     return (
       <div className="min-h-screen bg-[#F7F8FA]">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6">
           <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
             <p className="text-base font-semibold text-slate-800">로드맵을 찾을 수 없습니다.</p>
-            <p className="mt-1 text-sm text-slate-500">목록으로 돌아가서 다시 선택해 주세요.</p>
+            <p className="mt-1 text-sm text-slate-500">{error || "목록으로 돌아가서 다시 선택해 주세요."}</p>
             <Button asChild variant="outline" className="mt-4 rounded-xl border-blue-200 text-[#0F46D8]">
-              <Link href={`/teams/${teamId}/roadmaps`}>목록으로</Link>
+              <Link href="/roadmaps">목록으로</Link>
             </Button>
           </div>
         </div>
@@ -54,77 +200,184 @@ export default function RoadmapDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F8FA]">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-6">
-      <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-400">트랙 상세</p>
-              <h1 className="text-2xl font-bold text-gray-900">{roadmap.title}</h1>
-              <p className="mt-1 text-sm text-gray-400">{roadmap.description || "설명 없음"}</p>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-6">
+
+        {/* 헤더 */}
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="mb-1 text-xs font-medium text-gray-400">트랙 상세</p>
+                <h1 className="text-2xl font-bold text-gray-900">{roadmap?.title}</h1>
+                <p className="mt-1 text-sm text-gray-400">{roadmap?.description || "설명 없음"}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="outline" className="rounded-lg border-gray-200 text-[#0F46D8] hover:bg-gray-50">
+                  <Link href="/roadmaps">
+                    <ArrowLeft className="size-4" />
+                    목록으로
+                  </Link>
+                </Button>
+                <Button asChild className="rounded-lg bg-[#0F46D8] text-white hover:bg-[#0A37B0]">
+                  <Link href="/problems">
+                    <Plus className="size-4" />
+                    문제 추가
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <Button asChild variant="outline" className="rounded-lg border-gray-200 text-[#0F46D8] hover:bg-gray-50">
-              <Link href={`/teams/${teamId}/roadmaps`}>
-                <ArrowLeft className="size-4" />
-                목록으로
-              </Link>
-            </Button>
-          </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { icon: <Layers3 size={14} />, label: "담긴 문제", value: summary.count },
-              { icon: <Tag size={14} />, label: "태그 다양성", value: summary.tagCount },
-              { icon: null, label: "최고 난이도", value: summary.hardest || "-" },
-            ].map(({ icon, label, value }) => (
-              <div key={label} className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">{label}</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">{icon}{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-2.5">
-        {problems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
-            아직 담긴 문제가 없습니다.
-          </div>
-        ) : (
-          problems.map((problem) => (
-            <article key={problem.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-gray-200">
-              <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">
-                    {problem.bojId}. {problem.title}
+            <div className="grid gap-3 grid-cols-3">
+              {[
+                { icon: <Layers3 size={14} />, label: "총 단계", value: summary.stepCount },
+                { icon: <BookOpen size={14} />, label: "담긴 문제", value: summary.problemCount },
+                { icon: null, label: "최고 난이도", value: summary.hardest || "-" },
+              ].map(({ icon, label, value }) => (
+                <div key={label} className="rounded-xl border border-gray-100 p-3.5">
+                  <p className="text-xs text-gray-400">{label}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
+                    {icon}{value}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-400">난이도 구간: {levelLabel(problem.level)}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className="border border-blue-100 bg-[#EEF4FF] text-[#0F46D8]">Lv {problem.level}</Badge>
-                  <Button asChild size="sm" variant="outline" className="rounded-lg border-gray-200 text-[#0F46D8] hover:bg-gray-50">
-                    <a href={`https://www.acmicpc.net/problem/${problem.bojId}`} target="_blank" rel="noreferrer noopener">
-                      문제 보기
-                    </a>
-                  </Button>
-                  <Button size="sm" variant="outline" className="rounded-lg border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteProblem(problem.id)}>
-                    <Trash2 className="size-4" />
-                    삭제
-                  </Button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 스텝 목록 */}
+        <div className="space-y-3">
+          {steps.length === 0 && !isAddingStep && (
+            <div className="rounded-2xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-400">
+              스텝을 추가해서 문제를 단계별로 관리해보세요.
+            </div>
+          )}
+
+          {steps.map((step) => (
+            <section key={step.id} className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+              {/* 스텝 헤더 */}
+              <div className="flex items-center gap-3 border-b border-gray-50 bg-gray-50/60 px-5 py-3.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0F46D8] text-[11px] font-bold text-white">
+                  {step.order}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-800">{step.title}</p>
+                  {step.description && (
+                    <p className="text-xs text-gray-400">{step.description}</p>
+                  )}
                 </div>
+                <span className="text-xs text-gray-400">{step.problems.length}문제</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {problem.tags.map((tag) => (
-                  <Badge key={tag} className="border border-gray-200 bg-white text-gray-600">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </article>
-          ))
-        )}
-      </section>
+
+              {/* 문제 목록 */}
+              {step.problems.length === 0 ? (
+                <div className="px-5 py-6 text-center text-xs text-gray-300">
+                  이 단계에 담긴 문제가 없습니다.
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-50">
+                  {step.problems.map((problem) => {
+                    const tier = tierInfo(problem.level);
+                    return (
+                      <li key={problem.bojId} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                        <p className="min-w-0 truncate text-sm font-medium text-gray-800">
+                          {problem.bojId}. {problem.title}
+                        </p>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge className={`border text-xs ${tier.color}`}>
+                            {tier.label} {problem.level}
+                          </Badge>
+                          {/* 스텝 이동 드롭다운 */}
+                          {steps.length > 1 && (
+                            <Select
+                              value={String(step.id)}
+                              onValueChange={(val) =>
+                                handleMoveProblem(problem.bojId, step.id, Number(val))
+                              }
+                            >
+                              <SelectTrigger className="h-7 w-auto gap-1 rounded-lg border-gray-200 px-2.5 text-xs text-gray-500">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {steps.map((s) => (
+                                  <SelectItem key={s.id} value={String(s.id)}>
+                                    STEP {s.order}. {s.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-lg border-gray-200 px-2.5 text-xs text-[#0F46D8] hover:bg-gray-50"
+                          >
+                            <a
+                              href={`https://www.acmicpc.net/problem/${problem.bojId}`}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                            >
+                              풀기
+                            </a>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 w-7 rounded-lg border-red-100 p-0 text-red-400 hover:bg-red-50 hover:text-red-500"
+                            onClick={() => handleDeleteProblem(problem.bojId)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          ))}
+
+          {/* 스텝 추가 인라인 */}
+          {isAddingStep ? (
+            <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 shadow-sm">
+              <input
+                ref={newStepInputRef}
+                value={newStepTitle}
+                onChange={(e) => setNewStepTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddStep();
+                  if (e.key === "Escape") { setIsAddingStep(false); setNewStepTitle(""); }
+                }}
+                placeholder="스텝 이름 입력..."
+                className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+              />
+              <Button
+                size="sm"
+                onClick={handleAddStep}
+                disabled={!newStepTitle.trim() || addingStep}
+                className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-white hover:bg-[#0A37B0]"
+              >
+                <Check className="size-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => { setIsAddingStep(false); setNewStepTitle(""); }}
+                className="h-7 w-7 rounded-lg p-0 text-gray-400 hover:text-gray-600"
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAddingStep(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-200 py-3 text-sm text-gray-400 transition-colors hover:border-[#0F46D8]/30 hover:text-[#0F46D8]"
+            >
+              <Plus className="size-4" />
+              새 스텝 추가
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

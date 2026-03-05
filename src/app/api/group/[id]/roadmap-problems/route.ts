@@ -20,10 +20,64 @@ async function getTeamId(params: Params["params"]) {
 }
 
 // GET /api/group/[id]/roadmap-problems
-// 이 팀의 모든 로드맵에 담긴 문제 목록 { [bojId]: roadmapId }
+// - roadmapId 지정: 해당 로드맵의 문제 목록 { items: [...] }
+// - roadmapId 미지정: 이 팀의 모든 로드맵 문제 매핑 { [bojId]: roadmapId }
 export async function GET(_req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
+
+  const roadmapIdParam = _req.nextUrl.searchParams.get("roadmapId");
+  const roadmapId = roadmapIdParam ? Number(roadmapIdParam) : null;
+
+  if (roadmapId) {
+    const rows = await db
+      .select({
+        stepId: roadmapSteps.id,
+        stepOrder: roadmapSteps.order,
+        stepTitle: roadmapSteps.title,
+        stepDescription: roadmapSteps.description,
+        bojId: problems.boj_id,
+        title: problems.title,
+        level: problems.level,
+        problemOrder: roadmapProblems.order,
+      })
+      .from(roadmapSteps)
+      .leftJoin(roadmapProblems, eq(roadmapProblems.step_id, roadmapSteps.id))
+      .leftJoin(problems, eq(roadmapProblems.problem_id, problems.id))
+      .innerJoin(roadmaps, eq(roadmaps.id, roadmapSteps.roadmap_id))
+      .innerJoin(teamRoadmaps, eq(teamRoadmaps.roadmap_id, roadmaps.id))
+      .where(and(eq(teamRoadmaps.team_id, teamId), eq(roadmaps.id, roadmapId)))
+      .orderBy(roadmapSteps.order, roadmapProblems.order);
+
+    type StepEntry = {
+      id: number;
+      order: number;
+      title: string;
+      description: string | null;
+      problems: { bojId: number; title: string; level: number }[];
+    };
+    const stepsMap = new Map<number, StepEntry>();
+    for (const row of rows) {
+      if (!stepsMap.has(row.stepId)) {
+        stepsMap.set(row.stepId, {
+          id: row.stepId,
+          order: row.stepOrder,
+          title: row.stepTitle,
+          description: row.stepDescription,
+          problems: [],
+        });
+      }
+      if (row.bojId !== null) {
+        stepsMap.get(row.stepId)!.problems.push({
+          bojId: row.bojId,
+          title: row.title!,
+          level: row.level!,
+        });
+      }
+    }
+
+    return NextResponse.json({ steps: [...stepsMap.values()] });
+  }
 
   const rows = await db
     .select({ bojId: problems.boj_id, roadmapId: roadmaps.id })
@@ -191,6 +245,37 @@ export async function DELETE(req: NextRequest, ctx: Params) {
         )
       );
   }
+
+  return NextResponse.json({ ok: true });
+}
+
+// PATCH /api/group/[id]/roadmap-problems
+// Body: { bojId, fromStepId, toStepId }
+export async function PATCH(req: NextRequest, ctx: Params) {
+  const teamId = await getTeamId(ctx.params);
+  if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
+
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { bojId, fromStepId, toStepId } = (await req.json()) as {
+    bojId: number;
+    fromStepId: number;
+    toStepId: number;
+  };
+
+  const [problem] = await db
+    .select({ id: problems.id })
+    .from(problems)
+    .where(eq(problems.boj_id, bojId));
+  if (!problem) return NextResponse.json({ error: "Problem not found" }, { status: 404 });
+
+  await db
+    .update(roadmapProblems)
+    .set({ step_id: toStepId })
+    .where(
+      and(eq(roadmapProblems.step_id, fromStepId), eq(roadmapProblems.problem_id, problem.id))
+    );
 
   return NextResponse.json({ ok: true });
 }
