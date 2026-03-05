@@ -33,7 +33,7 @@ export default function RivalSection({ myHandle }: { myHandle: string }) {
   };
 
   return (
-    <Card className="border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+    <Card className="border-gray-100 bg-white shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-gray-700">라이벌 비교</CardTitle>
         <CardDescription className="text-xs">주요 태그별 풀이 수 비교</CardDescription>
