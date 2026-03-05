@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ArrowLeft, BookOpen, Check, Layers3, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -45,16 +45,15 @@ const tierInfo = (level: number): { label: string; color: string } => {
 
 export default function RoadmapDetailPage() {
   const params = useParams<{ roadmapId: string }>();
-  const searchParams = useSearchParams();
   const roadmapId = params?.roadmapId ?? "";
 
-  const [groupId, setGroupId] = useState<number | null>(
-    searchParams.get("groupId") ? Number(searchParams.get("groupId")) : null
-  );
   const [roadmap, setRoadmap] = useState<RoadmapInfo | null>(null);
   const [steps, setSteps] = useState<Step[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // 뮤테이션용 groupId (내 그룹 중 이 로드맵을 가진 그룹)
+  const [groupId, setGroupId] = useState<number | null>(null);
 
   // 스텝 추가 인라인 상태
   const [isAddingStep, setIsAddingStep] = useState(false);
@@ -62,41 +61,39 @@ export default function RoadmapDetailPage() {
   const [addingStep, setAddingStep] = useState(false);
   const newStepInputRef = useRef<HTMLInputElement>(null);
 
+  // 로드맵 데이터 로딩 (팀 없이 직접 조회)
   useEffect(() => {
-    if (groupId) return;
-    fetch("/api/group")
-      .then((r) => r.json())
-      .then((groups) => {
-        if (Array.isArray(groups) && groups.length > 0) {
-          setGroupId(groups[0].id);
-        } else {
-          setError("소속된 그룹이 없습니다.");
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        setError("그룹 정보를 불러오지 못했습니다.");
-        setLoading(false);
-      });
-  }, [groupId]);
-
-  useEffect(() => {
-    if (!groupId || !roadmapId) return;
+    if (!roadmapId) return;
     setLoading(true);
-    Promise.all([
-      fetch(`/api/group/${groupId}`).then((r) => r.json()),
-      fetch(`/api/group/${groupId}/roadmap-problems?roadmapId=${roadmapId}`).then((r) => r.json()),
-    ])
-      .then(([groupData, stepsData]) => {
-        const found = (groupData.roadmaps ?? []).find(
-          (r: RoadmapInfo) => r.id === Number(roadmapId)
-        );
-        setRoadmap(found ?? null);
-        setSteps(stepsData.steps ?? []);
+    fetch(`/api/roadmaps/${roadmapId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) { setError(data.error); return; }
+        setRoadmap(data.roadmap);
+        setSteps(data.steps ?? []);
       })
       .catch(() => setError("데이터를 불러오지 못했습니다."))
       .finally(() => setLoading(false));
-  }, [groupId, roadmapId]);
+  }, [roadmapId]);
+
+  // 뮤테이션용 groupId 조회 (내 그룹 중 이 로드맵을 포함한 그룹 찾기)
+  useEffect(() => {
+    if (!roadmapId) return;
+    fetch("/api/group")
+      .then((r) => r.json())
+      .then(async (groups) => {
+        if (!Array.isArray(groups) || groups.length === 0) return;
+        for (const group of groups) {
+          const res = await fetch(`/api/group/${group.id}`);
+          const data = await res.json();
+          const found = (data.roadmaps ?? []).some(
+            (rm: { id: number }) => rm.id === Number(roadmapId)
+          );
+          if (found) { setGroupId(group.id); break; }
+        }
+      })
+      .catch(() => {});
+  }, [roadmapId]);
 
   useEffect(() => {
     if (isAddingStep) newStepInputRef.current?.focus();
@@ -110,6 +107,12 @@ export default function RoadmapDetailPage() {
       hardest: Math.max(...allProblems.map((p) => p.level), 0),
     };
   }, [steps]);
+
+  function refreshSteps() {
+    fetch(`/api/roadmaps/${roadmapId}`)
+      .then((r) => r.json())
+      .then((data) => setSteps(data.steps ?? []));
+  }
 
   async function handleAddStep() {
     if (!newStepTitle.trim() || !groupId) return;
@@ -132,6 +135,7 @@ export default function RoadmapDetailPage() {
   }
 
   async function handleDeleteProblem(bojId: number) {
+    if (!groupId) return;
     setSteps((prev) =>
       prev.map((s) => ({ ...s, problems: s.problems.filter((p) => p.bojId !== bojId) }))
     );
@@ -142,14 +146,12 @@ export default function RoadmapDetailPage() {
         body: JSON.stringify({ bojId, roadmapId: Number(roadmapId) }),
       });
     } catch {
-      fetch(`/api/group/${groupId}/roadmap-problems?roadmapId=${roadmapId}`)
-        .then((r) => r.json())
-        .then((d) => setSteps(d.steps ?? []));
+      refreshSteps();
     }
   }
 
   async function handleMoveProblem(bojId: number, fromStepId: number, toStepId: number) {
-    // 낙관적 업데이트
+    if (!groupId) return;
     setSteps((prev) => {
       const problem = prev
         .find((s) => s.id === fromStepId)
@@ -168,9 +170,7 @@ export default function RoadmapDetailPage() {
         body: JSON.stringify({ bojId, fromStepId, toStepId }),
       });
     } catch {
-      fetch(`/api/group/${groupId}/roadmap-problems?roadmapId=${roadmapId}`)
-        .then((r) => r.json())
-        .then((d) => setSteps(d.steps ?? []));
+      refreshSteps();
     }
   }
 
@@ -218,12 +218,14 @@ export default function RoadmapDetailPage() {
                     목록으로
                   </Link>
                 </Button>
-                <Button asChild className="rounded-lg bg-[#0F46D8] text-white hover:bg-[#0A37B0]">
-                  <Link href="/problems">
-                    <Plus className="size-4" />
-                    문제 추가
-                  </Link>
-                </Button>
+                {groupId && (
+                  <Button asChild className="rounded-lg bg-[#0F46D8] text-white hover:bg-[#0A37B0]">
+                    <Link href="/problems">
+                      <Plus className="size-4" />
+                      문제 추가
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -248,13 +250,12 @@ export default function RoadmapDetailPage() {
         <div className="space-y-3">
           {steps.length === 0 && !isAddingStep && (
             <div className="rounded-2xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-400">
-              스텝을 추가해서 문제를 단계별로 관리해보세요.
+              {groupId ? "스텝을 추가해서 문제를 단계별로 관리해보세요." : "아직 담긴 문제가 없습니다."}
             </div>
           )}
 
           {steps.map((step) => (
             <section key={step.id} className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-              {/* 스텝 헤더 */}
               <div className="flex items-center gap-3 border-b border-gray-50 bg-gray-50/60 px-5 py-3.5">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0F46D8] text-[11px] font-bold text-white">
                   {step.order}
@@ -268,7 +269,6 @@ export default function RoadmapDetailPage() {
                 <span className="text-xs text-gray-400">{step.problems.length}문제</span>
               </div>
 
-              {/* 문제 목록 */}
               {step.problems.length === 0 ? (
                 <div className="px-5 py-6 text-center text-xs text-gray-300">
                   이 단계에 담긴 문제가 없습니다.
@@ -286,8 +286,7 @@ export default function RoadmapDetailPage() {
                           <Badge className={`border text-xs ${tier.color}`}>
                             {tier.label} {problem.level}
                           </Badge>
-                          {/* 스텝 이동 드롭다운 */}
-                          {steps.length > 1 && (
+                          {groupId && steps.length > 1 && (
                             <Select
                               value={String(step.id)}
                               onValueChange={(val) =>
@@ -320,14 +319,16 @@ export default function RoadmapDetailPage() {
                               풀기
                             </a>
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 w-7 rounded-lg border-red-100 p-0 text-red-400 hover:bg-red-50 hover:text-red-500"
-                            onClick={() => handleDeleteProblem(problem.bojId)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+                          {groupId && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 w-7 rounded-lg border-red-100 p-0 text-red-400 hover:bg-red-50 hover:text-red-500"
+                              onClick={() => handleDeleteProblem(problem.bojId)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </li>
                     );
@@ -337,45 +338,47 @@ export default function RoadmapDetailPage() {
             </section>
           ))}
 
-          {/* 스텝 추가 인라인 */}
-          {isAddingStep ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 shadow-sm">
-              <input
-                ref={newStepInputRef}
-                value={newStepTitle}
-                onChange={(e) => setNewStepTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddStep();
-                  if (e.key === "Escape") { setIsAddingStep(false); setNewStepTitle(""); }
-                }}
-                placeholder="스텝 이름 입력..."
-                className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
-              />
-              <Button
-                size="sm"
-                onClick={handleAddStep}
-                disabled={!newStepTitle.trim() || addingStep}
-                className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-white hover:bg-[#0A37B0]"
+          {/* 스텝 추가 (내 그룹에 속한 로드맵일 때만) */}
+          {groupId && (
+            isAddingStep ? (
+              <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 shadow-sm">
+                <input
+                  ref={newStepInputRef}
+                  value={newStepTitle}
+                  onChange={(e) => setNewStepTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddStep();
+                    if (e.key === "Escape") { setIsAddingStep(false); setNewStepTitle(""); }
+                  }}
+                  placeholder="스텝 이름 입력..."
+                  className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddStep}
+                  disabled={!newStepTitle.trim() || addingStep}
+                  className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-white hover:bg-[#0A37B0]"
+                >
+                  <Check className="size-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setIsAddingStep(false); setNewStepTitle(""); }}
+                  className="h-7 w-7 rounded-lg p-0 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAddingStep(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-200 py-3 text-sm text-gray-400 transition-colors hover:border-[#0F46D8]/30 hover:text-[#0F46D8]"
               >
-                <Check className="size-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => { setIsAddingStep(false); setNewStepTitle(""); }}
-                className="h-7 w-7 rounded-lg p-0 text-gray-400 hover:text-gray-600"
-              >
-                <X className="size-3.5" />
-              </Button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsAddingStep(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-200 py-3 text-sm text-gray-400 transition-colors hover:border-[#0F46D8]/30 hover:text-[#0F46D8]"
-            >
-              <Plus className="size-4" />
-              새 스텝 추가
-            </button>
+                <Plus className="size-4" />
+                새 스텝 추가
+              </button>
+            )
           )}
         </div>
       </div>
