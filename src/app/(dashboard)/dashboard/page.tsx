@@ -33,7 +33,7 @@ export default function GroupPage() {
   if (checking) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-[#666] text-sm animate-pulse">불러오는 중...</p>
+        <p className="text-[#666] text-sm animate-pulse">불러오는 중....</p>
       </div>
     );
   }
