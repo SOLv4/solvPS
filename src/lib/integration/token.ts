@@ -2,7 +2,6 @@ import crypto from "crypto";
 
 interface TokenPayload {
   uid: number;
-  tid: number;
   iat: number;
   exp: number;
   iss: string;
@@ -36,17 +35,14 @@ function parseBase64urlJson(input: string) {
 
 export function issueIntegrationToken({
   userId,
-  teamId,
   expiresInSec = 60 * 60 * 24 * 30,
 }: {
   userId: number;
-  teamId: number;
   expiresInSec?: number;
 }) {
   const now = Math.floor(Date.now() / 1000);
   const payload: TokenPayload = {
     uid: userId,
-    tid: teamId,
     iat: now,
     exp: now + expiresInSec,
     iss: ISSUER,

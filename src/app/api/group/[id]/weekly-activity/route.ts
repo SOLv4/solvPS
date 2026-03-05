@@ -116,6 +116,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       .select({
         userId: integrationSubmissions.user_id,
         capturedAt: integrationSubmissions.captured_at,
+        submissionId: integrationSubmissions.submission_id,
         problemId: integrationSubmissions.problem_id,
         level: problems.level,
       })
@@ -123,7 +124,6 @@ export async function GET(req: NextRequest, { params }: Params) {
       .leftJoin(problems, eq(problems.boj_id, integrationSubmissions.problem_id))
       .where(
         and(
-          eq(integrationSubmissions.team_id, teamId),
           eq(integrationSubmissions.result, "accepted"),
           inArray(integrationSubmissions.user_id, memberIds),
           gte(integrationSubmissions.captured_at, longWindowStart)
@@ -137,6 +137,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         weeklyDailyCount: number[];
         activeDaySet: Set<string>;
         weeklyDifficultyScore: number;
+        seenSubmissionIds: Set<string>;
       }
     >();
 
@@ -145,12 +146,15 @@ export async function GET(req: NextRequest, { params }: Params) {
         weeklyDailyCount: Array(7).fill(0),
         activeDaySet: new Set<string>(),
         weeklyDifficultyScore: 0,
+        seenSubmissionIds: new Set<string>(),
       });
     }
 
     for (const row of submissions) {
       const bucket = byMember.get(row.userId);
       if (!bucket) continue;
+      if (bucket.seenSubmissionIds.has(row.submissionId)) continue;
+      bucket.seenSubmissionIds.add(row.submissionId);
 
       const capturedDate = new Date(row.capturedAt);
       const memberJoinedAt = joinedAtByUser.get(row.userId) ?? new Date(0);

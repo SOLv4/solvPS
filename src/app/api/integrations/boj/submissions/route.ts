@@ -89,11 +89,11 @@ export async function POST(req: NextRequest) {
     }
 
     const bodyTeamId = Number(body.teamId);
-    const teamId = Number.isFinite(bodyTeamId) && bodyTeamId > 0 ? bodyTeamId : Number(payload.tid);
+    const teamId = Number.isFinite(bodyTeamId) && bodyTeamId > 0 ? bodyTeamId : NaN;
     const userId = Number(payload.uid);
 
     if (!Number.isFinite(teamId) || teamId <= 0) {
-      return NextResponse.json({ error: "Invalid teamId" }, { status: 400 });
+      return NextResponse.json({ error: "teamId is required and must be numeric" }, { status: 400 });
     }
 
     const [membership] = await db
