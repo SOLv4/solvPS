@@ -54,20 +54,15 @@ export default function TeamRoadmapsPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f7faff]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(15,70,216,0.14),transparent_38%),radial-gradient(circle_at_90%_100%,rgba(82,126,255,0.15),transparent_34%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(15,70,216,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,70,216,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-      <section className="relative overflow-hidden rounded-3xl border border-blue-200 bg-[radial-gradient(circle_at_0%_0%,#ffffff_0%,#f6f9ff_45%,#eff4ff_100%)] p-6 shadow-[0_30px_80px_-52px_rgba(0,70,254,0.65)] sm:p-8">
-        <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-indigo-200/40 blur-3xl" />
-
-        <div className="relative space-y-5">
+    <div className="min-h-screen bg-[#F7F8FA]">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-6">
+      <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold tracking-wider text-blue-700">LEARNING TRACK STUDIO</p>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-800 sm:text-4xl">로드맵 관리</h1>
-              <p className="mt-2 text-sm text-slate-600">팀 단위 학습 경로를 설계하고, 문제를 트랙별로 관리하세요.</p>
+              <p className="mb-1 text-xs font-medium text-gray-400">로드맵</p>
+              <h1 className="text-2xl font-bold text-gray-900">로드맵 관리</h1>
+              <p className="mt-1 text-sm text-gray-400">팀 단위 학습 경로를 설계하고, 문제를 트랙별로 관리하세요.</p>
             </div>
 
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -103,28 +98,19 @@ export default function TeamRoadmapsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-              <p className="text-xs text-slate-500">트랙 수</p>
-              <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                <Layers3 size={16} />
-                {summary.trackCount}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-              <p className="text-xs text-slate-500">총 문제 수</p>
-              <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                <FolderKanban size={16} />
-                {summary.totalProblems}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-              <p className="text-xs text-slate-500">트랙당 평균</p>
-              <p className="mt-1 text-xl font-bold text-[#0F46D8]">{summary.avgProblems}</p>
-            </div>
-            <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-              <p className="text-xs text-slate-500">최대 문제 수</p>
-              <p className="mt-1 text-xl font-bold text-[#0F46D8]">{summary.maxProblems}</p>
-            </div>
+            {[
+              { icon: <Layers3 size={14} />, label: "트랙 수", value: summary.trackCount },
+              { icon: <FolderKanban size={14} />, label: "총 문제 수", value: summary.totalProblems },
+              { icon: null, label: "트랙당 평균", value: summary.avgProblems },
+              { icon: null, label: "최대 문제 수", value: summary.maxProblems },
+            ].map(({ icon, label, value }) => (
+              <div key={label} className="rounded-xl border border-gray-100 p-3.5">
+                <p className="text-xs text-gray-400">{label}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
+                  {icon}{value}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -133,7 +119,7 @@ export default function TeamRoadmapsPage() {
         {sortedRoadmaps.map((roadmap, index) => {
           const intensity = Math.min(100, Math.max(12, roadmap.problemsCount * 12));
           return (
-            <article key={roadmap.id} className="rounded-3xl border border-blue-100/90 bg-gradient-to-b from-white/80 to-[#f8faff]/85 p-5 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)] transition-all hover:-translate-y-0.5 hover:shadow-[0_30px_70px_-44px_rgba(0,70,254,0.65)]">
+            <article key={roadmap.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-colors hover:border-gray-200">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold text-blue-600">TRACK {index + 1}</p>
@@ -146,20 +132,20 @@ export default function TeamRoadmapsPage() {
                 </div>
               </div>
 
-              <div className="mb-4 h-2 overflow-hidden rounded-full bg-blue-100">
-                <div className="h-full rounded-full bg-gradient-to-r from-[#0F46D8] to-[#6B92FF]" style={{ width: `${intensity}%` }} />
+              <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                <div className="h-full rounded-full bg-[#0F46D8]" style={{ width: `${intensity}%` }} />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <div className="inline-flex items-center gap-1 text-xs text-gray-400">
                   <CalendarDays size={13} />
                   {new Date(roadmap.createdAt).toLocaleDateString("ko-KR")}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button asChild size="sm" variant="outline" className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]">
+                  <Button asChild size="sm" variant="outline" className="rounded-lg border-gray-200 text-[#0F46D8] hover:bg-gray-50">
                     <Link href={`/teams/${teamId}/roadmaps/${roadmap.id}`}>상세 보기</Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleDeleteRoadmap(roadmap.id)}>
+                  <Button size="sm" variant="outline" className="rounded-lg border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => handleDeleteRoadmap(roadmap.id)}>
                     <Trash2 className="size-4" />
                     삭제
                   </Button>

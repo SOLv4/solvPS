@@ -53,13 +53,13 @@ export default function AnalyzeSection({ handle }: { handle: string }) {
       <Button
         onClick={runAnalyze}
         disabled={loading}
-        className="w-full rounded-2xl bg-gradient-to-r from-[#0046FE] to-[#2E67FE] py-6 text-base font-semibold text-white shadow-[0_20px_40px_-22px_rgba(0,70,254,0.95)] hover:opacity-95"
+        className="w-full rounded-2xl bg-[#0F46D8] py-6 text-base font-semibold text-white hover:bg-[#0A37B0]"
       >
         {loading ? "Claude AI 분석 중..." : "✦ Claude AI로 맞춤 문제 추천받기"}
       </Button>
 
       {logs.length > 0 && (
-        <Card className="border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff]">
+        <Card className="border-gray-100 bg-white">
           <CardContent className="p-4 space-y-2">
             <p className="text-xs text-gray-400 uppercase tracking-wider font-medium">진행 상황</p>
             {logs.map((log, i) => (
@@ -96,7 +96,7 @@ export default function AnalyzeSection({ handle }: { handle: string }) {
       )}
 
       {result && (
-        <Card className="border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+        <Card className="border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded bg-[#0046FE] flex items-center justify-center">

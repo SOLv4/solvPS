@@ -63,7 +63,7 @@ export default function StyleCard({ data }: { data: StyleData }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-gradient-to-r from-[#F7FAFF] to-white p-3.5">
+      <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5">
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#E8F0FF] text-2xl">{styleIcon}</div>
         <div>
           <p className="text-sm font-semibold text-slate-800">{styleName}</p>

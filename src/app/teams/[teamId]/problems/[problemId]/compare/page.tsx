@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeftRight, ChevronLeft, GitCompare, User } from "lucide-react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 type SubmissionItem = {
   id: number;
@@ -20,6 +22,24 @@ type SubmissionItem = {
   submittedAtRaw: string | null;
   capturedAt: string;
 };
+
+function toHighlightLang(language: string): string {
+  const lang = language.toLowerCase();
+  if (lang.includes("c++") || lang.includes("cpp")) return "cpp";
+  if (lang.includes("python") || lang.includes("pypy")) return "python";
+  if (lang.includes("java") && !lang.includes("javascript")) return "java";
+  if (lang.includes("javascript") || lang.includes("js")) return "javascript";
+  if (lang.includes("typescript") || lang.includes("ts")) return "typescript";
+  if (lang.includes("kotlin")) return "kotlin";
+  if (lang.includes("rust")) return "rust";
+  if (lang.includes("go")) return "go";
+  if (lang.includes("swift")) return "swift";
+  if (lang.includes("ruby")) return "ruby";
+  if (lang.includes("c#") || lang.includes("csharp")) return "csharp";
+  if (lang.includes("php")) return "php";
+  if (lang === "c") return "c";
+  return "text";
+}
 
 function splitLines(text: string) {
   return text.replace(/\r\n/g, "\n").split("\n");
@@ -52,7 +72,7 @@ export default function ProblemComparePage() {
         const next = Array.isArray(json.items) ? json.items : [];
         setItems(next);
 
-        const handles = [...new Set(next.map((item: SubmissionItem) => item.memberHandle))];
+        const handles: string[] = [...new Set<string>(next.map((item: SubmissionItem) => item.memberHandle))];
         setLeftHandle(handles[0] || "");
         setRightHandle(handles[1] || handles[0] || "");
       } catch (e) {
@@ -85,24 +105,25 @@ export default function ProblemComparePage() {
   const maxLines = Math.max(leftLines.length, rightLines.length);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f7faff]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(15,70,216,0.14),transparent_38%),radial-gradient(circle_at_90%_100%,rgba(82,126,255,0.15),transparent_34%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(15,70,216,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,70,216,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-        <section className="rounded-3xl border border-blue-200 bg-[radial-gradient(circle_at_0%_0%,#ffffff_0%,#f6f9ff_45%,#eff4ff_100%)] p-6 shadow-[0_30px_80px_-52px_rgba(0,70,254,0.65)]">
+    <div className="min-h-screen bg-[#F7F8FA]">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-6">
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold tracking-wider text-blue-700">TEAM CODE COMPARE</p>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-800 sm:text-4xl">문제 {problemId} 코드 비교</h1>
+              <p className="mb-1 text-xs font-medium text-gray-400">코드 비교</p>
+              <h1 className="text-2xl font-bold text-gray-900">문제 {problemId} 코드 비교</h1>
             </div>
-            <Link href={`/teams/${teamId}/problems`} className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-white/80 px-3 py-2 text-sm font-semibold text-[#0F46D8] hover:bg-[#F4F8FF]">
+            <Link
+              href={`/teams/${teamId}/problems`}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-[#0F46D8] hover:bg-gray-50"
+            >
               <ChevronLeft size={14} />
               문제 검색으로
             </Link>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-blue-100/80 bg-gradient-to-b from-white/85 to-[#f8faff]/90 p-5 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <GitCompare size={17} className="text-[#0F46D8]" />
             <h2 className="text-base font-semibold text-slate-800">비교 대상 선택</h2>
@@ -111,7 +132,7 @@ export default function ProblemComparePage() {
             <select
               value={leftHandle}
               onChange={(e) => setLeftHandle(e.target.value)}
-              className="rounded-xl border border-blue-200 bg-white/80 px-3 py-2 text-sm"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
             >
               {handles.map((handle) => (
                 <option key={handle} value={handle}>
@@ -125,7 +146,7 @@ export default function ProblemComparePage() {
             <select
               value={rightHandle}
               onChange={(e) => setRightHandle(e.target.value)}
-              className="rounded-xl border border-blue-200 bg-white/80 px-3 py-2 text-sm"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
             >
               {handles.map((handle) => (
                 <option key={handle} value={handle}>
@@ -137,34 +158,44 @@ export default function ProblemComparePage() {
         </section>
 
         {loading && (
-          <div className="rounded-3xl border border-dashed border-blue-200 bg-[#f8fbff] py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
             코드 비교 데이터를 불러오는 중...
           </div>
         )}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && handles.length < 1 && (
-          <div className="rounded-3xl border border-dashed border-blue-200 bg-[#f8fbff] py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
             아직 이 문제에 저장된 팀 코드가 없습니다.
           </div>
         )}
 
         {!loading && !error && handles.length > 0 && (
           <section className="grid gap-4 lg:grid-cols-2">
-            {[left, right].map((item, index) => (
-              <article key={index} className="rounded-3xl border border-blue-100/90 bg-gradient-to-b from-white/80 to-[#f8faff]/85 p-4 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="inline-flex items-center gap-1 text-sm font-semibold text-slate-800">
-                    <User size={14} />
+            {([left, right] as (SubmissionItem | null)[]).map((item, index) => (
+              <article key={index} className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+                  <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                    <User size={14} className="text-gray-400" />
                     {item?.memberHandle || "-"}
                   </p>
-                  <div className="text-xs text-slate-500">
-                    {item?.language || "-"} · 제출 #{item?.submissionId || "-"}
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <span className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono font-medium text-gray-600">
+                      {item?.language || "-"}
+                    </span>
+                    <span>제출 #{item?.submissionId || "-"}</span>
                   </div>
                 </div>
-                <div className="max-h-[580px] overflow-auto rounded-xl border border-blue-100 bg-[#fbfdff] p-3">
-                  <pre className="font-mono text-[12px] leading-5 text-slate-700">
+                <div className="max-h-[580px] overflow-auto">
+                  <SyntaxHighlighter
+                    language={toHighlightLang(item?.language || "")}
+                    style={oneLight}
+                    showLineNumbers
+                    lineNumberStyle={{ color: "#94a3b8", fontSize: "11px", minWidth: "2.5em" }}
+                    customStyle={{ margin: 0, borderRadius: "0 0 1rem 1rem", fontSize: "12px", background: "#fafafa" }}
+                    codeTagProps={{ style: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } }}
+                  >
                     {(item?.sourceCode || "").trim() || "// code not found"}
-                  </pre>
+                  </SyntaxHighlighter>
                 </div>
               </article>
             ))}
@@ -172,9 +203,11 @@ export default function ProblemComparePage() {
         )}
 
         {!loading && !error && left && right && (
-          <section className="rounded-3xl border border-blue-100/90 bg-gradient-to-b from-white/80 to-[#f8faff]/85 p-4 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
-            <h3 className="mb-3 text-sm font-semibold text-slate-800">라인 단위 빠른 비교</h3>
-            <div className="max-h-[440px] overflow-auto rounded-xl border border-blue-100 bg-white">
+          <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-800">라인 단위 빠른 비교</h3>
+            </div>
+            <div className="max-h-[440px] overflow-auto">
               <table className="w-full border-collapse text-xs font-mono">
                 <tbody>
                   {Array.from({ length: maxLines }).map((_, i) => {
@@ -182,10 +215,10 @@ export default function ProblemComparePage() {
                     const r = rightLines[i] ?? "";
                     const same = l === r;
                     return (
-                      <tr key={i} className={same ? "bg-white" : "bg-amber-50/60"}>
-                        <td className="w-12 border-r border-blue-100 px-2 py-1.5 text-right text-slate-400">{i + 1}</td>
-                        <td className="w-1/2 border-r border-blue-100 px-2 py-1.5 text-slate-700">{l || " "}</td>
-                        <td className="w-1/2 px-2 py-1.5 text-slate-700">{r || " "}</td>
+                      <tr key={i} className={same ? "bg-white" : "bg-amber-50"}>
+                        <td className="w-10 border-r border-gray-100 px-2 py-1.5 text-right text-gray-300 select-none">{i + 1}</td>
+                        <td className="w-1/2 border-r border-gray-100 px-3 py-1.5 text-slate-700 whitespace-pre">{l || " "}</td>
+                        <td className="w-1/2 px-3 py-1.5 text-slate-700 whitespace-pre">{r || " "}</td>
                       </tr>
                     );
                   })}

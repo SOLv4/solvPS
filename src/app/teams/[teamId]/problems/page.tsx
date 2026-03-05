@@ -168,51 +168,46 @@ export default function TeamProblemsPage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f7faff]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(15,70,216,0.14),transparent_38%),radial-gradient(circle_at_90%_100%,rgba(82,126,255,0.15),transparent_34%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(15,70,216,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,70,216,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-        <section className="relative overflow-hidden rounded-3xl border border-blue-200 bg-[radial-gradient(circle_at_0%_0%,#ffffff_0%,#f6f9ff_45%,#eff4ff_100%)] p-6 shadow-[0_30px_80px_-52px_rgba(0,70,254,0.65)] sm:p-8">
-          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-indigo-200/40 blur-3xl" />
-
-          <div className="relative space-y-5">
+    <div className="min-h-screen bg-[#F7F8FA]">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+          <div className="space-y-5">
             <div>
-              <p className="text-xs font-semibold tracking-wider text-blue-700">
-                PROBLEM DISCOVERY BOARD
+              <p className="text-xs font-medium text-gray-400">
+                문제 검색
               </p>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-800 sm:text-4xl">
+              <h1 className="mt-1 text-2xl font-bold text-gray-900">
                 문제 검색
               </h1>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-gray-400">
                 난이도/태그 기준으로 문제를 필터링하고 바로 로드맵에 편입하세요.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">검색 결과</p>
+              <div className="rounded-xl border border-gray-100 p-3.5">
+                <p className="text-xs text-gray-400">검색 결과</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
                   <Search size={16} />
                   {summary.total}
                 </p>
               </div>
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">로드맵 편입</p>
+              <div className="rounded-xl border border-gray-100 p-3.5">
+                <p className="text-xs text-gray-400">로드맵 편입</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
                   <Layers3 size={16} />
                   {summary.inRoadmapCount}
                 </p>
               </div>
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">평균 난이도</p>
+              <div className="rounded-xl border border-gray-100 p-3.5">
+                <p className="text-xs text-gray-400">평균 난이도</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
                   <Target size={16} />
                   {summary.avgLevel || "-"}
                 </p>
               </div>
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">주요 태그</p>
+              <div className="rounded-xl border border-gray-100 p-3.5">
+                <p className="text-xs text-gray-400">주요 태그</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
                   <Sparkles size={16} />
                   <span className="truncate">{summary.topTag}</span>
@@ -222,7 +217,7 @@ export default function TeamProblemsPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-blue-100/80 bg-gradient-to-b from-white/85 to-[#f8faff]/90 p-5 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Filter size={17} className="text-[#0F46D8]" />
             <h2 className="text-base font-semibold text-slate-800">필터</h2>
@@ -234,14 +229,14 @@ export default function TeamProblemsPage() {
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
                 placeholder="문제명 또는 BOJ 번호 검색"
-                className="rounded-xl border-blue-200 bg-white/80 pl-9 backdrop-blur-sm"
+                className="rounded-xl border-gray-200 bg-white pl-9"
               />
             </div>
             <Select
               value={tierPreset}
               onValueChange={(value) => setTierPreset(value as TierPreset)}
             >
-              <SelectTrigger className="rounded-xl border-blue-200 bg-white/80 backdrop-blur-sm">
+              <SelectTrigger className="rounded-xl border-gray-200 bg-white">
                 <SelectValue placeholder="난이도 선택" />
               </SelectTrigger>
               <SelectContent>
@@ -256,7 +251,7 @@ export default function TeamProblemsPage() {
               value={tagQuery}
               onChange={(event) => setTagQuery(event.target.value)}
               placeholder="태그 필터 (예: 그래프, DP)"
-              className="rounded-xl border-blue-200 bg-white/80 backdrop-blur-sm"
+              className="rounded-xl border-gray-200 bg-white"
             />
           </div>
         </section>
@@ -266,12 +261,12 @@ export default function TeamProblemsPage() {
             <p className="text-sm text-red-500">{loadError}</p>
           ) : null}
           {isLoading ? (
-            <div className="rounded-3xl border border-dashed border-blue-200 bg-[#f8fbff] py-10 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
               검색 결과를 불러오는 중...
             </div>
           ) : null}
           {!isLoading && problems.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-blue-200 bg-[#f8fbff] py-10 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
               검색 결과가 없습니다.
             </div>
           ) : null}
@@ -283,7 +278,7 @@ export default function TeamProblemsPage() {
               return (
                 <article
                   key={problem.id}
-                  className="rounded-3xl border border-blue-100/90 bg-gradient-to-b from-white/80 to-[#f8faff]/85 p-4 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)] transition-all hover:-translate-y-0.5 hover:shadow-[0_30px_70px_-44px_rgba(0,70,254,0.65)]"
+                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-gray-200"
                 >
                   <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -314,7 +309,7 @@ export default function TeamProblemsPage() {
                     {problem.tags.map((tag) => (
                       <Badge
                         key={tag}
-                        className="border border-blue-200 bg-white text-slate-600"
+                        className="border border-gray-200 bg-white text-gray-600"
                       >
                         {tag}
                       </Badge>
@@ -396,3 +391,4 @@ export default function TeamProblemsPage() {
     </div>
   );
 }
+

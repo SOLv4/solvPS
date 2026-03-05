@@ -52,7 +52,7 @@ export default function ClassProgress({
 
   return (
     <div className="space-y-5">
-      <div className="grid items-center gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-[#F6FAFF] to-white p-3.5 sm:grid-cols-[180px_minmax(0,1fr)]">
+      <div className="grid items-center gap-4 rounded-2xl border border-gray-100 bg-white p-3.5 sm:grid-cols-[180px_minmax(0,1fr)]">
         <div className="relative h-40">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart data={gaugeData} innerRadius="72%" outerRadius="100%" startAngle={90} endAngle={-270}>

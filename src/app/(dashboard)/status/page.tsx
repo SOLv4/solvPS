@@ -154,7 +154,7 @@ export default async function StatusPage() {
         </div>
       </section>
 
-      <Card className="border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+      <Card className="border-gray-100 bg-white shadow-sm">
         <CardHeader className="pb-1">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -174,7 +174,7 @@ export default async function StatusPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <Card className="xl:col-span-7 border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+        <Card className="xl:col-span-7 border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-base font-semibold text-slate-800">난이도 분포 인사이트</CardTitle>
             <CardDescription className="text-xs">구간별 풀이량과 해결률을 동시에 추적</CardDescription>
@@ -184,7 +184,7 @@ export default async function StatusPage() {
           </CardContent>
         </Card>
 
-        <Card className="xl:col-span-5 border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+        <Card className="xl:col-span-5 border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-base font-semibold text-slate-800">CLASS 로드맵</CardTitle>
             <CardDescription className="text-xs">전체 진행률과 에센셜 달성률 동시 비교</CardDescription>
@@ -195,7 +195,7 @@ export default async function StatusPage() {
         </Card>
       </div>
 
-      <Card className="border-blue-100/80 bg-gradient-to-b from-white to-[#f8faff] shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
+      <Card className="border-gray-100 bg-white shadow-sm">
         <CardHeader className="pb-1">
           <CardTitle className="text-base font-semibold text-slate-800">풀이 스타일 프로파일</CardTitle>
           <CardDescription className="text-xs">상위 100문제 난이도/태그 분포 기반 진단</CardDescription>

@@ -3,17 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
-import { User, Users, LogOut, PlusCircle, BarChart2 } from "lucide-react";
+import { BarChart2, BookOpen, ChevronRight, LogOut, PlusCircle, Search, Users } from "lucide-react";
 
-export default function Sidebar({ user }: { user: any }) {
+export default function Sidebar({ user }: { user: { name?: string | null; email?: string | null } }) {
   const pathname = usePathname();
 
   const handleSignOut = async () => {
     await authClient.signOut({
       fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/login";
-        },
+        onSuccess: () => { window.location.href = "/login"; },
       },
     });
   };
@@ -21,77 +19,84 @@ export default function Sidebar({ user }: { user: any }) {
   const menuItems = [
     { name: "내 통계", href: "/status", icon: BarChart2 },
     { name: "내 그룹", href: "/group", icon: Users },
-    { name: "로드맵", href: "/teams/1/roadmaps", icon: BarChart2 },
-    { name: "문제 검색", href: "/teams/1/problems", icon: BarChart2 },
+    { name: "로드맵", href: "/teams/1/roadmaps", icon: BookOpen },
+    { name: "문제 검색", href: "/teams/1/problems", icon: Search },
   ];
 
+  const initials = user.name?.slice(0, 2).toUpperCase() ?? "??";
+
   return (
-    <div className="w-64 h-screen bg-white border-r border-[#EAEAEA] flex flex-col">
-      {/* 로고 영역 */}
-      <div className="p-6">
-        <Link
-          href="/dashboard"
-          className="text-[#0046FE] font-bold text-xl tracking-tight"
-        >
-          ROADMAP
+    <aside className="sticky top-0 flex h-screen w-60 flex-shrink-0 flex-col border-r border-gray-100 bg-white">
+      {/* 로고 */}
+      <div className="flex h-14 items-center border-b border-gray-100 px-5">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0F46D8]">
+            <span className="text-[11px] font-black text-white">S</span>
+          </div>
+          <span className="text-sm font-bold text-gray-900 tracking-tight">SolvPS</span>
         </Link>
       </div>
 
-      {/* 사용자 프로필 요약 */}
-      <div className="px-6 py-4 mb-4">
-        <div className="flex items-center gap-3 p-3 bg-[#F5F8FF] rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-[#2E67FE] flex items-center justify-center text-white">
-            <User size={20} />
+      {/* 유저 프로필 */}
+      <div className="border-b border-gray-100 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0F46D8] text-[11px] font-bold text-white">
+            {initials}
           </div>
-          <div className="overflow-hidden">
-            <p className="text-sm font-semibold text-[#111] truncate">
-              {user.name}
-            </p>
-            <p className="text-xs text-[#666] truncate">{user.email}</p>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold text-gray-800">{user.name ?? "-"}</p>
+            <p className="truncate text-[10px] text-gray-400">{user.email ?? ""}</p>
           </div>
         </div>
       </div>
 
-      {/* 메뉴 리스트 */}
-      <nav className="flex-1 px-4 space-y-1">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-[#0046FE] text-white"
-                  : "text-[#666] hover:bg-[#F5F8FF] hover:text-[#0046FE]"
-              }`}
-            >
-              <item.icon size={18} />
-              {item.name}
-            </Link>
-          );
-        })}
-        {/* 구분선과 그룹 생성 버튼 */}
-        <div className="pt-4 mt-4 border-t border-[#EAEAEA]">
+      {/* 네비게이션 */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3">
+        <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">메뉴</p>
+        <ul className="space-y-0.5">
+          {menuItems.map((item) => {
+            const isActive = pathname.startsWith(item.href);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-[#EEF4FF] text-[#0F46D8]"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                  }`}
+                >
+                  <item.icon size={15} className={isActive ? "text-[#0F46D8]" : "text-gray-400 group-hover:text-gray-600"} />
+                  {item.name}
+                  {isActive && <ChevronRight size={12} className="ml-auto text-[#0F46D8]/50" />}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">그룹</p>
           <Link
             href="/group?new=1"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold bg-[#F5F8FF] text-[#0046FE] hover:bg-[#E6EEFF] transition-colors"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800"
           >
-            <PlusCircle size={18} />새 그룹 생성
+            <PlusCircle size={15} className="text-gray-400" />
+            새 그룹 생성
           </Link>
         </div>
       </nav>
 
-      {/* 하단 로그아웃 */}
-      <div className="p-4 border-t border-[#EAEAEA]">
+      {/* 로그아웃 */}
+      <div className="border-t border-gray-100 px-3 py-3">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-[#FF4D4F] hover:bg-red-50 rounded-lg transition-colors"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
         >
-          <LogOut size={18} />
+          <LogOut size={15} />
           로그아웃
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

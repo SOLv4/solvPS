@@ -242,172 +242,189 @@ export default function GroupDashboard() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f7faff] p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(15,70,216,0.14),transparent_38%),radial-gradient(circle_at_92%_100%,rgba(82,126,255,0.15),transparent_34%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(15,70,216,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,70,216,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="relative mx-auto max-w-6xl space-y-6">
-        <section className="relative overflow-hidden rounded-3xl border border-blue-200 bg-[radial-gradient(circle_at_0%_0%,#ffffff_0%,#f6f9ff_45%,#eff4ff_100%)] p-6 shadow-[0_30px_80px_-52px_rgba(0,70,254,0.65)] sm:p-8">
-          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-indigo-200/40 blur-3xl" />
+    <div className="min-h-screen bg-[#F7F8FA] px-6 py-7">
+      <div className="mx-auto max-w-5xl space-y-5">
 
-          <div className="relative space-y-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold tracking-wider text-blue-700">GROUP COMMAND CENTER</p>
-                <div className="relative">
-                  <button
-                    onClick={() => setDropdownOpen((v) => !v)}
-                    className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white/85 px-3 py-2 backdrop-blur"
-                  >
-                    <h1 className="text-3xl font-black tracking-tight text-slate-800 sm:text-4xl">{data.team.name}</h1>
-                    {myGroups.length > 1 && <ChevronDown size={16} className="text-slate-500" />}
-                  </button>
-                  {dropdownOpen && myGroups.length > 1 && (
-                    <div className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
-                      {myGroups.map((group) => (
-                        <button
-                          key={group.id}
-                          onClick={() => {
-                            router.push(`/group/${group.id}`);
-                            setDropdownOpen(false);
-                          }}
-                          className={`w-full px-4 py-3 text-left text-sm transition-colors ${
-                            group.id === Number(id) ? "bg-[#F2F7FF] text-[#0F46D8] font-semibold" : "text-slate-700 hover:bg-[#F8FBFF]"
-                          }`}
-                        >
-                          {group.name}
-                          <span className="ml-2 text-xs text-slate-400">{group.role === "OWNER" ? "팀장" : "멤버"}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
+        {/* ── 페이지 헤더 (카드 없이 자연스럽게) ── */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="mb-1 text-xs font-medium text-gray-400">내 그룹</p>
+            <div className="relative flex items-center gap-2">
               <button
-                onClick={copyInviteCode}
-                className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white/85 px-4 py-2.5 backdrop-blur transition hover:bg-[#F4F8FF]"
+                onClick={() => setDropdownOpen((v) => !v)}
+                className="flex items-center gap-1.5 group"
               >
-                <span className="font-mono text-sm font-bold tracking-widest text-[#0F46D8]">{data.team.invite_code}</span>
-                {copiedInvite ? <Check size={14} className="text-green-500" /> : <Copy size={14} className="text-slate-500" />}
+                <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{data.team.name}</h1>
+                {myGroups.length > 1 && (
+                  <ChevronDown size={18} className="mt-1 text-gray-400 transition group-hover:text-gray-600" />
+                )}
               </button>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">팀 멤버</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Users size={16} />
-                  {summary.memberCount}명
-                </p>
-              </div>
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">로드맵</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Layers3 size={16} />
-                  {summary.roadmapCount}개
-                </p>
-              </div>
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">총 학습 단계</p>
-                <p className="mt-1 text-xl font-bold text-[#0F46D8]">{summary.totalSteps.toLocaleString()}</p>
-              </div>
-              <div className="rounded-2xl border border-blue-100 bg-white/80 p-3.5">
-                <p className="text-xs text-slate-500">팀 내 최다 풀이</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Trophy size={16} />
-                  {summary.topSolvedCount.toLocaleString()}
-                </p>
-              </div>
+              {dropdownOpen && myGroups.length > 1 && (
+                <div className="absolute left-0 top-full z-20 mt-1.5 w-52 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg shadow-gray-200/60">
+                  {myGroups.map((group) => (
+                    <button
+                      key={group.id}
+                      onClick={() => { router.push(`/group/${group.id}`); setDropdownOpen(false); }}
+                      className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                        group.id === Number(id)
+                          ? "bg-[#EEF4FF] font-semibold text-[#0F46D8]"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {group.name}
+                      <span className="ml-2 text-xs text-gray-400">{group.role === "OWNER" ? "팀장" : "멤버"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </section>
 
-        <section className="rounded-3xl border border-blue-100/80 bg-gradient-to-b from-white/85 to-[#f8faff]/90 p-6 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
-          <div className="mb-4 flex items-center gap-2">
-            <KeyRound size={18} className="text-[#0F46D8]" />
-            <h2 className="text-base font-semibold text-slate-800">크롬 확장 연동</h2>
+          <button
+            onClick={copyInviteCode}
+            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
+          >
+            <span className="font-mono text-xs font-bold tracking-widest text-[#0F46D8]">{data.team.invite_code}</span>
+            {copiedInvite
+              ? <Check size={13} className="text-green-500" />
+              : <Copy size={13} className="text-gray-400" />}
+            <span className="text-xs text-gray-400">{copiedInvite ? "복사됨" : "초대 코드"}</span>
+          </button>
+        </div>
+
+        {/* ── 통계 카드 4종 ── */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { icon: Users, label: "팀 멤버", value: summary.memberCount, unit: "명", color: "text-[#0F46D8] bg-blue-50" },
+            { icon: Layers3, label: "로드맵", value: summary.roadmapCount, unit: "개", color: "text-violet-600 bg-violet-50" },
+            { icon: Layers3, label: "총 학습 단계", value: summary.totalSteps.toLocaleString(), unit: "단계", color: "text-indigo-600 bg-indigo-50" },
+            { icon: Trophy, label: "최다 풀이", value: summary.topSolvedCount.toLocaleString(), unit: "문제", color: "text-amber-600 bg-amber-50" },
+          ].map(({ icon: Icon, label, value, unit, color }) => (
+            <div key={label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className={`mb-3 inline-flex h-8 w-8 items-center justify-center rounded-lg ${color}`}>
+                <Icon size={14} />
+              </div>
+              <p className="text-[11px] font-medium text-gray-400">{label}</p>
+              <p className="mt-0.5 text-xl font-bold text-gray-900">
+                {value}<span className="ml-1 text-xs font-medium text-gray-400">{unit}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── 크롬 확장 연동 ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <KeyRound size={14} className="text-[#0F46D8]" />
+              <h2 className="text-sm font-semibold text-gray-800">크롬 확장 연동</h2>
+            </div>
+            <span className="text-[11px] text-gray-400">Team ID와 API 토큰을 확장에 입력하세요</span>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-blue-100 bg-white/70 p-4">
-              <p className="text-xs text-slate-500">Team ID (확장에 그대로 입력)</p>
-              <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5">
+          <div className="grid divide-y divide-gray-50 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+            <div className="px-5 py-4">
+              <p className="mb-2 text-xs font-medium text-gray-500">Team ID</p>
+              <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
                 <span className="font-mono text-sm font-bold text-[#0F46D8]">{data.team.id}</span>
-                <button onClick={copyTeamId} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-[#0F46D8]">
-                  {copiedTeamId ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                <button onClick={copyTeamId} className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition hover:text-[#0F46D8]">
+                  {copiedTeamId ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
                   {copiedTeamId ? "복사됨" : "복사"}
                 </button>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-blue-100 bg-white/70 p-4">
-              <p className="text-xs text-slate-500">API Token (Bearer)</p>
-              <div className="mt-2 flex items-center gap-2">
+            <div className="px-5 py-4">
+              <p className="mb-2 text-xs font-medium text-gray-500">API Token</p>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={issueToken}
                   disabled={tokenLoading}
-                  className="rounded-xl bg-[#0F46D8] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0A37B0] disabled:opacity-50"
+                  className="rounded-lg bg-[#0F46D8] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0A37B0] disabled:opacity-50"
                 >
-                  {tokenLoading ? "발급 중..." : integrationToken ? "토큰 재발급" : "토큰 발급"}
+                  {tokenLoading ? "발급 중..." : integrationToken ? "재발급" : "토큰 발급"}
                 </button>
                 {integrationToken && (
-                  <button onClick={copyToken} className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-[#F4F8FF]">
-                    {copiedToken ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
-                    {copiedToken ? "복사됨" : "토큰 복사"}
+                  <button onClick={copyToken} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
+                    {copiedToken ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                    {copiedToken ? "복사됨" : "복사"}
                   </button>
                 )}
               </div>
               {integrationToken && (
-                <p className="mt-2 break-all rounded-xl border border-blue-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-600">
+                <p className="mt-2 break-all rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 font-mono text-[11px] text-gray-500">
                   {integrationToken}
                 </p>
               )}
               {tokenError && <p className="mt-2 text-xs text-red-500">{tokenError}</p>}
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-3xl border border-blue-100/80 bg-gradient-to-b from-white/85 to-[#f8faff]/90 p-6 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
-          <div className="mb-4 flex items-center gap-2">
-            <Users size={18} className="text-[#0F46D8]" />
-            <h2 className="text-base font-semibold text-slate-800">
-              멤버 랭킹 <span className="text-sm font-normal text-slate-500">({data.members.length}명)</span>
-            </h2>
-          </div>
-          <MemberRanking members={data.members} />
-        </section>
-
-        <section className="rounded-3xl border border-blue-100/80 bg-gradient-to-b from-white/85 to-[#f8faff]/90 p-6 backdrop-blur-md shadow-[0_24px_60px_-42px_rgba(0,70,254,0.55)]">
-          <div className="mb-4 flex items-center gap-2">
-            <Code2 size={18} className="text-[#0F46D8]" />
-            <h2 className="text-base font-semibold text-slate-800">팀 코드 비교</h2>
-          </div>
-
-          {compareLoading ? (
-            <p className="text-sm text-slate-500">코드 비교 목록을 불러오는 중...</p>
-          ) : compareItems.length === 0 ? (
-            <p className="text-sm text-slate-500">아직 팀 코드가 수집되지 않았습니다.</p>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {compareItems.map((item) => (
-                <Link
-                  key={item.problemId}
-                  href={`/teams/${data.team.id}/problems/${item.problemId}/compare`}
-                  className="rounded-2xl border border-blue-100 bg-white/70 p-4 backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-42px_rgba(0,70,254,0.55)]"
-                >
-                  <p className="text-sm font-semibold text-slate-800">문제 {item.problemId}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    팀원 {item.memberCount}명 · 제출 {item.submissionCount}건
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    최신 수집: {new Date(item.latestCapturedAt).toLocaleString("ko-KR")}
-                  </p>
-                </Link>
-              ))}
+        {/* ── 멤버 랭킹 ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <Users size={14} className="text-[#0F46D8]" />
+              <h2 className="text-sm font-semibold text-gray-800">멤버 랭킹</h2>
             </div>
-          )}
-        </section>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
+              {data.members.length}명
+            </span>
+          </div>
+          <div className="p-4">
+            <MemberRanking members={data.members} />
+          </div>
+        </div>
+
+        {/* ── 팀 코드 비교 ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <Code2 size={14} className="text-[#0F46D8]" />
+              <h2 className="text-sm font-semibold text-gray-800">팀 코드 비교</h2>
+            </div>
+            {compareItems.length > 0 && (
+              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
+                {compareItems.length}문제
+              </span>
+            )}
+          </div>
+          <div className="p-4">
+            {compareLoading ? (
+              <p className="animate-pulse text-sm text-gray-400">불러오는 중...</p>
+            ) : compareItems.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center">
+                <Code2 size={20} className="mx-auto mb-2 text-gray-300" />
+                <p className="text-sm text-gray-400">아직 수집된 팀 코드가 없습니다.</p>
+                <p className="mt-1 text-xs text-gray-300">크롬 확장으로 제출 코드를 수집해보세요.</p>
+              </div>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2">
+                {compareItems.map((item) => (
+                  <Link
+                    key={item.problemId}
+                    href={`/teams/${data.team.id}/problems/${item.problemId}/compare`}
+                    className="group flex items-start justify-between rounded-xl border border-gray-100 p-4 transition-colors hover:border-[#0F46D8]/20 hover:bg-[#F7F9FF]"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">문제 {item.problemId}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        팀원 {item.memberCount}명 · 제출 {item.submissionCount}건
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-300">
+                        {new Date(item.latestCapturedAt).toLocaleString("ko-KR")}
+                      </p>
+                    </div>
+                    <span className="mt-0.5 text-xs font-medium text-[#0F46D8] opacity-0 transition-opacity group-hover:opacity-100">
+                      보기 →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         <RoadmapSection roadmaps={data.roadmaps} progress={progress} onToggle={toggleProgress} />
       </div>
