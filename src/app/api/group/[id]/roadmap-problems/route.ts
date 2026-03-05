@@ -21,7 +21,7 @@ async function getTeamId(params: Params["params"]) {
 
 // GET /api/group/[id]/roadmap-problems
 // - roadmapId 지정: 해당 로드맵의 문제 목록 { items: [...] }
-// - roadmapId 미지정: 이 팀의 모든 로드맵 문제 매핑 { [bojId]: roadmapId }
+// - roadmapId 미지정: 이 팀의 모든 로드맵 문제 매핑 { [bojId]: roadmapId[] }
 export async function GET(_req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
@@ -88,9 +88,12 @@ export async function GET(_req: NextRequest, ctx: Params) {
     .innerJoin(problems, eq(roadmapProblems.problem_id, problems.id))
     .where(eq(teamRoadmaps.team_id, teamId));
 
-  const map: Record<number, number> = {};
+  const map: Record<number, number[]> = {};
   for (const row of rows) {
-    map[row.bojId] = row.roadmapId;
+    if (!map[row.bojId]) map[row.bojId] = [];
+    if (!map[row.bojId].includes(row.roadmapId)) {
+      map[row.bojId].push(row.roadmapId);
+    }
   }
   return NextResponse.json(map);
 }
@@ -132,8 +135,23 @@ export async function POST(req: NextRequest, ctx: Params) {
     .from(teamRoadmaps)
     .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, roadmapId)))
     .limit(1);
+
   if (!roadmapLink) {
-    return NextResponse.json({ error: "Roadmap not found in team" }, { status: 404 });
+    const [roadmapExists] = await db
+      .select({ id: roadmaps.id })
+      .from(roadmaps)
+      .where(eq(roadmaps.id, roadmapId))
+      .limit(1);
+
+    if (!roadmapExists) {
+      return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
+    }
+
+    await db.insert(teamRoadmaps).values({
+      team_id: teamId,
+      roadmap_id: roadmapId,
+      added_by: Number(session.user.id),
+    });
   }
 
   // 1. 문제 upsert
@@ -158,13 +176,14 @@ export async function POST(req: NextRequest, ctx: Params) {
       .returning({ id: roadmapSteps.id });
   }
 
-  // 3. 이미 담겨있는지 확인
+  // 3. 이미 이 로드맵 어딘가에 담겨있는지 확인
   const existing = await db
     .select({ id: roadmapProblems.id })
     .from(roadmapProblems)
+    .innerJoin(roadmapSteps, eq(roadmapSteps.id, roadmapProblems.step_id))
     .where(
       and(
-        eq(roadmapProblems.step_id, step.id),
+        eq(roadmapSteps.roadmap_id, roadmapId),
         eq(roadmapProblems.problem_id, problem.id)
       )
     );
