@@ -4,8 +4,6 @@ name: Build and Deploy to EC2
 on:
   push:
     branches: ["production"]
-  pull_request:
-    branches: ["production"]
 
 # AWS 관련 값 변수로 설정
 env:
@@ -31,12 +29,6 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      # 공개되면 안되는 정보를 담은 .env 파일 생성
-      - name: make .env
-        run: |
-          touch ./.env
-          echo "${{ secrets.ENV }}" > ./.env
-
       # 의존성 설치
       - name: Install dependencies
         run: npm ci
@@ -47,7 +39,7 @@ jobs:
 
       # 빌드 파일을 zip 형식으로 압축
       - name: Make zip file
-        run: zip -r ./$GITHUB_SHA.zip . --exclude "*.git*" --exclude "node_modules/*"
+        run: zip -r ./$GITHUB_SHA.zip . --exclude "*.git*" --exclude "node_modules/*" --exclude ".env" --exclude ".env.*"
         shell: bash
 
       # AWS 권한
