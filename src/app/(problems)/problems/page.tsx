@@ -29,14 +29,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getMockProblems,
-  getMockRoadmaps,
   tagPresetOptions,
   tierPresetOptions,
   type Problem,
   type TagPreset,
   type TierPreset,
 } from "@/lib/mock";
+
+type Roadmap = { id: number; title: string };
+type Group = { id: number; [key: string]: unknown };
 
 const PAGE_SIZE = 20;
 
@@ -71,6 +72,7 @@ export default function ProblemsPage() {
   const [tierPreset, setTierPreset] = useState<TierPreset>("all");
   const [tagPreset, setTagPreset] = useState<TagPreset>("all");
 
+  const [actionError, setActionError] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>("");
