@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronDown, Code2, Copy, KeyRound, Layers3, Trophy, Users } from "lucide-react";
+import { Check, ChevronDown, Code2, Copy, KeyRound, Users } from "lucide-react";
 import RoadmapSection from "@/components/group/RoadmapSection";
 import WeeklyStreakBoard, { WeeklyMember } from "@/components/group/WeeklyStreakBoard";
 
@@ -66,6 +66,7 @@ export default function GroupDashboard() {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [copiedTeamId, setCopiedTeamId] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [integrationOpen, setIntegrationOpen] = useState(false);
   const [myGroups, setMyGroups] = useState<MyGroup[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [integrationToken, setIntegrationToken] = useState("");
@@ -189,25 +190,6 @@ export default function GroupDashboard() {
       .finally(() => setWeeklyLoading(false));
   }, [id]);
 
-  const summary = useMemo(() => {
-    if (!data) {
-      return {
-        memberCount: 0,
-        roadmapCount: 0,
-        totalSteps: 0,
-        topSolvedCount: 0,
-      };
-    }
-    const totalSteps = data.roadmaps.reduce((sum, roadmap) => sum + roadmap.steps.length, 0);
-    const topSolvedCount = Math.max(...data.members.map((member) => member.solvedCount), 0);
-    return {
-      memberCount: data.members.length,
-      roadmapCount: data.roadmaps.length,
-      totalSteps,
-      topSolvedCount,
-    };
-  }, [data]);
-
   const copyInviteCode = () => {
     if (!data) return;
     navigator.clipboard.writeText(data.team.invite_code).then(() => {
@@ -237,11 +219,7 @@ export default function GroupDashboard() {
     setTokenLoading(true);
     setTokenError("");
     try {
-      const res = await fetch("/api/integrations/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: data.team.id }),
-      });
+      const res = await fetch("/api/integrations/token", { method: "POST" });
       const raw = await res.text();
       const json = raw ? JSON.parse(raw) : {};
       if (!res.ok) throw new Error(json.error || `토큰 발급 실패 (${res.status})`);
@@ -308,39 +286,34 @@ export default function GroupDashboard() {
             </div>
           </div>
 
-          <button
-            onClick={copyInviteCode}
-            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
-          >
-            <span className="font-mono text-xs font-bold tracking-widest text-[#0F46D8]">{data.team.invite_code}</span>
-            {copiedInvite
-              ? <Check size={13} className="text-green-500" />
-              : <Copy size={13} className="text-gray-400" />}
-            <span className="text-xs text-gray-400">{copiedInvite ? "복사됨" : "초대 코드"}</span>
-          </button>
+          <div className="w-full max-w-sm space-y-2">
+            <button
+              onClick={copyInviteCode}
+              className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
+            >
+              <span className="font-mono text-xs font-bold tracking-widest text-[#0F46D8]">{data.team.invite_code}</span>
+              <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                {copiedInvite
+                  ? <Check size={13} className="text-green-500" />
+                  : <Copy size={13} className="text-gray-400" />}
+                {copiedInvite ? "복사됨" : "초대 코드"}
+              </span>
+            </button>
+            <button
+              onClick={() => setIntegrationOpen((v) => !v)}
+              className="flex w-full items-center justify-between rounded-xl border border-[#0F46D8]/20 bg-white px-3.5 py-2 text-sm font-semibold text-[#0F46D8] shadow-sm transition hover:bg-[#F7F9FF]"
+            >
+              <span className="inline-flex items-center gap-2">
+                <KeyRound size={14} />
+                크롬 확장 연동
+              </span>
+              <span className="text-xs">{integrationOpen ? "접기" : "열기"}</span>
+            </button>
+          </div>
         </div>
 
-        {/* ── 통계 카드 4종 ── */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-            { icon: Users, label: "팀 멤버", value: summary.memberCount, unit: "명", color: "text-[#0F46D8] bg-blue-50" },
-            { icon: Layers3, label: "로드맵", value: summary.roadmapCount, unit: "개", color: "text-violet-600 bg-violet-50" },
-            { icon: Layers3, label: "총 학습 단계", value: summary.totalSteps.toLocaleString(), unit: "단계", color: "text-indigo-600 bg-indigo-50" },
-            { icon: Trophy, label: "최다 풀이", value: summary.topSolvedCount.toLocaleString(), unit: "문제", color: "text-amber-600 bg-amber-50" },
-          ].map(({ icon: Icon, label, value, unit, color }) => (
-            <div key={label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className={`mb-3 inline-flex h-8 w-8 items-center justify-center rounded-lg ${color}`}>
-                <Icon size={14} />
-              </div>
-              <p className="text-[11px] font-medium text-gray-400">{label}</p>
-              <p className="mt-0.5 text-xl font-bold text-gray-900">
-                {value}<span className="ml-1 text-xs font-medium text-gray-400">{unit}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── 크롬 확장 연동 ── */}
+        {/* ── 크롬 확장 연동 (토글) ── */}
+        {integrationOpen && (
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
             <div className="flex items-center gap-2.5">
@@ -388,6 +361,7 @@ export default function GroupDashboard() {
             </div>
           </div>
         </div>
+        )}
 
         {/* ── 멤버 랭킹 ── */}
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
