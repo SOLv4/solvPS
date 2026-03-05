@@ -154,12 +154,26 @@ export const roadmaps = pgTable("roadmaps", {
   created_by: integer("created_by")
     .notNull()
     .references(() => users.id),
-  team_id: integer("team_id").references(() => teams.id, {
-    onDelete: "set null",
-  }),
   is_public: boolean("is_public").notNull().default(false),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const teamRoadmaps = pgTable(
+  "team_roadmaps",
+  {
+    team_id: integer("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    roadmap_id: integer("roadmap_id")
+      .notNull()
+      .references(() => roadmaps.id, { onDelete: "cascade" }),
+    added_by: integer("added_by")
+      .notNull()
+      .references(() => users.id),
+    added_at: timestamp("added_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("team_roadmaps_team_roadmap_uidx").on(t.team_id, t.roadmap_id)]
+);
 
 export const roadmapSteps = pgTable("roadmap_steps", {
   id: serial("id").primaryKey(),

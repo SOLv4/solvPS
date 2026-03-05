@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { teams, teamMembers, users, userBoj, roadmaps, roadmapSteps } from "@/lib/db/schema";
+import {
+  teams,
+  teamMembers,
+  users,
+  userBoj,
+  roadmaps,
+  roadmapSteps,
+  teamRoadmaps,
+} from "@/lib/db/schema";
 import { getUserInfo, TIER_NAME } from "@/lib/status/solvedac";
 
 export async function GET(
@@ -65,8 +73,9 @@ export async function GET(
   // 로드맵 + 스텝 조회
   const roadmapList = await db
     .select()
-    .from(roadmaps)
-    .where(eq(roadmaps.team_id, teamId));
+    .from(teamRoadmaps)
+    .innerJoin(roadmaps, eq(teamRoadmaps.roadmap_id, roadmaps.id))
+    .where(eq(teamRoadmaps.team_id, teamId));
 
   const roadmapsWithSteps = await Promise.all(
     roadmapList.map(async (roadmap) => {
@@ -78,10 +87,15 @@ export async function GET(
           description: roadmapSteps.description,
         })
         .from(roadmapSteps)
-        .where(eq(roadmapSteps.roadmap_id, roadmap.id))
+        .where(eq(roadmapSteps.roadmap_id, roadmap.roadmaps.id))
         .orderBy(roadmapSteps.order);
 
-      return { id: roadmap.id, title: roadmap.title, description: roadmap.description, steps };
+      return {
+        id: roadmap.roadmaps.id,
+        title: roadmap.roadmaps.title,
+        description: roadmap.roadmaps.description,
+        steps,
+      };
     })
   );
 

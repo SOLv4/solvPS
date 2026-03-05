@@ -8,6 +8,7 @@ import {
   roadmapProblems,
   problems,
   teamMembers,
+  teamRoadmaps,
 } from "@/lib/db/schema";
 
 type Params = { params: Promise<{ id: string }> };
@@ -29,8 +30,9 @@ export async function GET(_req: NextRequest, ctx: Params) {
     .from(roadmapProblems)
     .innerJoin(roadmapSteps, eq(roadmapProblems.step_id, roadmapSteps.id))
     .innerJoin(roadmaps, eq(roadmapSteps.roadmap_id, roadmaps.id))
+    .innerJoin(teamRoadmaps, eq(teamRoadmaps.roadmap_id, roadmaps.id))
     .innerJoin(problems, eq(roadmapProblems.problem_id, problems.id))
-    .where(eq(roadmaps.team_id, teamId));
+    .where(eq(teamRoadmaps.team_id, teamId));
 
   const map: Record<number, number> = {};
   for (const row of rows) {
@@ -69,6 +71,15 @@ export async function POST(req: NextRequest, ctx: Params) {
 
   if (!bojId || !title || level == null || !roadmapId) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  const [roadmapLink] = await db
+    .select({ roadmapId: teamRoadmaps.roadmap_id })
+    .from(teamRoadmaps)
+    .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, roadmapId)))
+    .limit(1);
+  if (!roadmapLink) {
+    return NextResponse.json({ error: "Roadmap not found in team" }, { status: 404 });
   }
 
   // 1. 문제 upsert
@@ -133,6 +144,27 @@ export async function DELETE(req: NextRequest, ctx: Params) {
     bojId: number;
     roadmapId: number;
   };
+
+  const isMember = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.team_id, teamId),
+        eq(teamMembers.user_id, Number(session.user.id))
+      )
+    )
+    .then((r) => r.length > 0);
+  if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const [roadmapLink] = await db
+    .select({ roadmapId: teamRoadmaps.roadmap_id })
+    .from(teamRoadmaps)
+    .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, roadmapId)))
+    .limit(1);
+  if (!roadmapLink) {
+    return NextResponse.json({ error: "Roadmap not found in team" }, { status: 404 });
+  }
 
   const [problem] = await db
     .select({ id: problems.id })

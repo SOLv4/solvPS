@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth/index";
-import { roadmaps, roadmapSteps, teamMembers, userRoadmapProgresses } from "@/lib/db/schema";
+import {
+  roadmaps,
+  roadmapSteps,
+  teamMembers,
+  teamRoadmaps,
+  userRoadmapProgresses,
+} from "@/lib/db/schema";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -23,7 +29,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     .select({ id: roadmapSteps.id })
     .from(roadmapSteps)
     .innerJoin(roadmaps, eq(roadmapSteps.roadmap_id, roadmaps.id))
-    .where(eq(roadmaps.team_id, teamId));
+    .innerJoin(teamRoadmaps, eq(teamRoadmaps.roadmap_id, roadmaps.id))
+    .where(eq(teamRoadmaps.team_id, teamId));
 
   if (steps.length === 0) return NextResponse.json({});
 
