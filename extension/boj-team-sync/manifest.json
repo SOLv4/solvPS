@@ -8,9 +8,9 @@
   ],
   "host_permissions": [
     "https://www.acmicpc.net/*",
-    "https://acmicpc.net/*",
-    "http://www.acmicpc.net/*",
-    "http://acmicpc.net/*",
+    "https://acmicpc.net/*"
+  ],
+  "optional_host_permissions": [
     "http://localhost:3000/*",
     "https://*/*"
   ],
@@ -21,9 +21,7 @@
     {
       "matches": [
         "https://www.acmicpc.net/*",
-        "https://acmicpc.net/*",
-        "http://www.acmicpc.net/*",
-        "http://acmicpc.net/*"
+        "https://acmicpc.net/*"
       ],
       "js": [
         "content.js"

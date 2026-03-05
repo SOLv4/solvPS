@@ -2,6 +2,7 @@
   console.info("[BOJ Team Sync] content script loaded:", location.href);
   const PENDING_KEY = "bojTeamSyncPendingSubmission";
   const LAST_UPLOADED_KEY = "bojTeamSyncLastUploadedSubmissionId";
+  const LAST_FAILED_KEY = "bojTeamSyncLastFailedSubmissionId";
   const MAX_STATUS_POLL = 80;
   const POLL_INTERVAL_MS = 1200;
 
@@ -135,10 +136,11 @@
       return false;
     }
 
-    const local = await safeStorageGet([PENDING_KEY, LAST_UPLOADED_KEY]);
+    const local = await safeStorageGet([PENDING_KEY, LAST_UPLOADED_KEY, LAST_FAILED_KEY]);
     if (!local) return true;
-    const pending = local[PENDING_KEY];
+    let pending = local[PENDING_KEY];
     const lastUploadedSubmissionId = local[LAST_UPLOADED_KEY];
+    const lastFailedSubmissionId = local[LAST_FAILED_KEY];
 
     if (status.result !== "accepted") {
       console.info("[BOJ Team Sync] latest status is not accepted:", {
@@ -151,12 +153,17 @@
       console.info("[BOJ Team Sync] already uploaded submission:", status.submissionId);
       return true;
     }
+    if (lastFailedSubmissionId && String(lastFailedSubmissionId) === String(status.submissionId)) {
+      return true;
+    }
     if (pending && String(pending.problemId) !== String(status.problemId)) {
       console.info("[BOJ Team Sync] latest problem mismatch", {
         pendingProblemId: pending.problemId,
         latestProblemId: status.problemId
       });
-      return false;
+      // Pending cache can be stale (another tab/older submit). Drop it and continue with /source fallback.
+      await safeStorageRemove(PENDING_KEY);
+      pending = null;
     }
 
     let sourceCode = pending?.sourceCode || "";
@@ -182,24 +189,52 @@
       result: "accepted"
     };
 
-    chrome.runtime.sendMessage({ type: "UPLOAD_ACCEPTED_SUBMISSION", payload }, async (response) => {
-      if (chrome.runtime.lastError) {
-        console.warn("[BOJ Team Sync]", chrome.runtime.lastError.message);
-        return;
-      }
+    const uploaded = await uploadViaBackgroundThenFallback(payload);
+    if (!uploaded.ok) {
+      await safeStorageSet({ [LAST_FAILED_KEY]: status.submissionId });
+      console.warn("[BOJ Team Sync] upload failed permanently:", uploaded.error);
+      return true;
+    }
 
-      if (!response?.ok) {
-        console.warn("[BOJ Team Sync] upload failed:", response?.error);
-        return;
-      }
-
-      const setOk = await safeStorageSet({ [LAST_UPLOADED_KEY]: status.submissionId });
-      const removeOk = await safeStorageRemove(PENDING_KEY);
-      if (!setOk || !removeOk) return;
-      console.info("[BOJ Team Sync] submission uploaded");
-    });
+    const setOk = await safeStorageSet({ [LAST_UPLOADED_KEY]: status.submissionId });
+    await safeStorageRemove(LAST_FAILED_KEY);
+    const removeOk = await safeStorageRemove(PENDING_KEY);
+    if (!setOk || !removeOk) return false;
+    console.info("[BOJ Team Sync] submission uploaded");
 
     return true;
+  }
+
+  async function uploadViaBackgroundThenFallback(payload) {
+    if (!chrome.runtime?.id) {
+      return { ok: false, error: "runtime unavailable" };
+    }
+    const backgroundResult = await sendToBackground(payload);
+    if (!backgroundResult.ok) {
+      console.warn("[BOJ Team Sync] background upload failed:", backgroundResult.error);
+      return { ok: false, error: backgroundResult.error };
+    }
+    return backgroundResult;
+  }
+
+  function sendToBackground(payload) {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ type: "UPLOAD_ACCEPTED_SUBMISSION", payload }, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({ ok: false, error: chrome.runtime.lastError.message });
+            return;
+          }
+          if (!response?.ok) {
+            resolve({ ok: false, error: response?.error || "unknown response" });
+            return;
+          }
+          resolve({ ok: true });
+        });
+      } catch (err) {
+        resolve({ ok: false, error: String(err) });
+      }
+    });
   }
 
   function getProblemIdFromPath() {

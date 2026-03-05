@@ -10,6 +10,9 @@ async function uploadSubmission(payload) {
   if (missing.length > 0) {
     throw new Error(`Missing extension config: ${missing.join(", ")}`);
   }
+  if (!/^\d+$/.test(String(config.teamId || ""))) {
+    throw new Error("Invalid teamId: must be numeric");
+  }
 
   const endpoint = `${config.apiBaseUrl.replace(/\/$/, "")}/api/integrations/boj/submissions`;
   const body = {
