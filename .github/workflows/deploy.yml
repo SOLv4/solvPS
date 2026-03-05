@@ -41,9 +41,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 테스트 실행
+      # 테스트 실행 (test 스크립트 없으면 스킵)
       - name: Run tests
-        run: npm test
+        run: npm test --if-present
 
       # 빌드 파일을 zip 형식으로 압축
       - name: Make zip file
