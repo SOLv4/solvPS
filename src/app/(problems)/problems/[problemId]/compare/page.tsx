@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeftRight, ChevronLeft, GitCompare, User } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -46,8 +46,9 @@ function splitLines(text: string) {
 }
 
 export default function ProblemComparePage() {
-  const params = useParams<{ teamId: string; problemId: string }>();
-  const teamId = params?.teamId ?? "";
+  const params = useParams<{ problemId: string }>();
+  const searchParams = useSearchParams();
+  const teamId = searchParams.get("teamId") ?? "";
   const problemId = params?.problemId ?? "";
 
   const [items, setItems] = useState<SubmissionItem[]>([]);
@@ -114,7 +115,7 @@ export default function ProblemComparePage() {
               <h1 className="text-2xl font-bold text-gray-900">문제 {problemId} 코드 비교</h1>
             </div>
             <Link
-              href={`/teams/${teamId}/problems`}
+              href="/problems"
               className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-[#0F46D8] hover:bg-gray-50"
             >
               <ChevronLeft size={14} />

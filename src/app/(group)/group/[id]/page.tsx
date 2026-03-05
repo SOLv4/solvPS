@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronDown, Code2, Copy, KeyRound, Layers3, Trophy, Users } from "lucide-react";
-import MemberRanking from "@/components/group/MemberRanking";
 import RoadmapSection from "@/components/group/RoadmapSection";
+import WeeklyStreakBoard, { WeeklyMember } from "@/components/group/WeeklyStreakBoard";
 
 interface Member {
   handle: string;
@@ -50,6 +50,11 @@ interface IntegrationSubmission {
   capturedAt: string;
 }
 
+interface WeeklyActivityResponse {
+  labels: string[];
+  members: WeeklyMember[];
+}
+
 export default function GroupDashboard() {
   const params = useParams();
   const router = useRouter();
@@ -70,6 +75,11 @@ export default function GroupDashboard() {
     { problemId: number; latestCapturedAt: string; memberCount: number; submissionCount: number }[]
   >([]);
   const [compareLoading, setCompareLoading] = useState(false);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivityResponse>({
+    labels: [],
+    members: [],
+  });
   const [progress, setProgress] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
@@ -160,6 +170,24 @@ export default function GroupDashboard() {
       .catch(() => setCompareItems([]))
       .finally(() => setCompareLoading(false));
   }, [data?.team.id]);
+
+  useEffect(() => {
+    setWeeklyLoading(true);
+    fetch(`/api/group/${id}/weekly-activity`, { cache: "no-store" })
+      .then(async (res) => {
+        const raw = await res.text();
+        const json = raw ? JSON.parse(raw) : {};
+        if (!res.ok) throw new Error(json.error || "주간 활동 데이터를 불러오지 못했습니다.");
+        setWeeklyActivity({
+          labels: Array.isArray(json.labels) ? json.labels : [],
+          members: Array.isArray(json.members) ? json.members : [],
+        });
+      })
+      .catch(() => {
+        setWeeklyActivity({ labels: [], members: [] });
+      })
+      .finally(() => setWeeklyLoading(false));
+  }, [id]);
 
   const summary = useMemo(() => {
     if (!data) {
@@ -366,14 +394,18 @@ export default function GroupDashboard() {
           <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
             <div className="flex items-center gap-2.5">
               <Users size={14} className="text-[#0F46D8]" />
-              <h2 className="text-sm font-semibold text-gray-800">멤버 랭킹</h2>
+              <h2 className="text-sm font-semibold text-gray-800">주간 스트릭 랭킹</h2>
             </div>
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
               {data.members.length}명
             </span>
           </div>
           <div className="p-4">
-            <MemberRanking members={data.members} />
+            <WeeklyStreakBoard
+              labels={weeklyActivity.labels}
+              members={weeklyActivity.members}
+              loading={weeklyLoading}
+            />
           </div>
         </div>
 
@@ -404,7 +436,7 @@ export default function GroupDashboard() {
                 {compareItems.map((item) => (
                   <Link
                     key={item.problemId}
-                    href={`/teams/${data.team.id}/problems/${item.problemId}/compare`}
+                    href={`/problems/${item.problemId}/compare?teamId=${data.team.id}`}
                     className="group flex items-start justify-between rounded-xl border border-gray-100 p-4 transition-colors hover:border-[#0F46D8]/20 hover:bg-[#F7F9FF]"
                   >
                     <div>
