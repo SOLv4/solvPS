@@ -4,6 +4,11 @@ echo ">>> 배포 시작" >> /home/ubuntu/deploy.log
 
 cd /home/ubuntu/app
 
+if [ ! -f /home/ubuntu/app/.env ]; then
+  echo ">>> ERROR: /home/ubuntu/app/.env 파일이 없습니다. 배포 중단" >> /home/ubuntu/deploy_err.log
+  exit 1
+fi
+
 echo ">>> 의존성 설치" >> /home/ubuntu/deploy.log
 npm install >> /home/ubuntu/deploy.log 2>> /home/ubuntu/deploy_err.log
 
