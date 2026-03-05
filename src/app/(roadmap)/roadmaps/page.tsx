@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -22,16 +22,67 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-import { createMockRoadmap, getMockRoadmaps, type Roadmap } from "@/lib/mock";
+type RoadmapCard = {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  problemsCount: number;
+};
 
 export default function TeamRoadmapsPage() {
   const params = useParams<{ teamId: string }>();
   const teamId = params?.teamId ?? "1";
 
-  const [roadmaps, setRoadmaps] = useState<Roadmap[]>(() => getMockRoadmaps());
+  const [roadmaps, setRoadmaps] = useState<RoadmapCard[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function loadRoadmaps(signal?: AbortSignal) {
+    setError("");
+    try {
+      const res = await fetch(`/api/group/${teamId}`, {
+        cache: "no-store",
+        signal,
+      });
+      if (!res.ok) throw new Error(`request failed: ${res.status}`);
+
+      const data = (await res.json()) as {
+        roadmaps?: Array<{
+          id: number;
+          title: string;
+          description: string | null;
+          createdAt?: string;
+          created_at?: string;
+          problemsCount?: number;
+        }>;
+      };
+
+      setRoadmaps(
+        (data.roadmaps ?? []).map((roadmap) => ({
+          id: String(roadmap.id),
+          title: roadmap.title,
+          description: roadmap.description ?? "",
+          createdAt:
+            roadmap.createdAt ?? roadmap.created_at ?? new Date().toISOString(),
+          problemsCount: roadmap.problemsCount ?? 0,
+        })),
+      );
+    } catch (e) {
+      if ((e as { name?: string }).name === "AbortError") return;
+      setError("로드맵 목록을 불러오지 못했습니다.");
+      setRoadmaps([]);
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadRoadmaps(controller.signal);
+    return () => controller.abort();
+  }, [teamId]);
 
   const sortedRoadmaps = useMemo(
     () =>
@@ -62,24 +113,59 @@ export default function TeamRoadmapsPage() {
     };
   }, [roadmaps]);
 
-  function handleCreateRoadmap() {
+  async function handleCreateRoadmap() {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
-    const nextRoadmap = createMockRoadmap({
-      title: trimmedTitle,
-      description,
-      orderSeed: roadmaps.length + 1,
-    });
+    setIsSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/group/${teamId}/roadmaps`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: trimmedTitle,
+          description: description.trim(),
+        }),
+      });
 
-    setRoadmaps((prev) => [nextRoadmap, ...prev]);
-    setTitle("");
-    setDescription("");
-    setCreateOpen(false);
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "로드맵 생성 실패");
+      }
+
+      setTitle("");
+      setDescription("");
+      setCreateOpen(false);
+      await loadRoadmaps();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "로드맵 생성 실패");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function handleDeleteRoadmap(roadmapId: string) {
-    setRoadmaps((prev) => prev.filter((roadmap) => roadmap.id !== roadmapId));
+  async function handleDeleteRoadmap(roadmapId: string) {
+    setIsSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/group/${teamId}/roadmaps`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapId: Number(roadmapId) }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "로드맵 삭제 실패");
+      }
+
+      await loadRoadmaps();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "로드맵 삭제 실패");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -95,6 +181,9 @@ export default function TeamRoadmapsPage() {
                 </h1>
                 <p className="mt-1 text-sm text-gray-400">
                   팀 단위 학습 경로를 설계하고, 문제를 트랙별로 관리하세요.
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  생성/삭제는 DB에 반영됩니다.
                 </p>
               </div>
 
@@ -137,8 +226,8 @@ export default function TeamRoadmapsPage() {
                       취소
                     </Button>
                     <Button
-                      onClick={handleCreateRoadmap}
-                      disabled={!title.trim()}
+                      onClick={() => void handleCreateRoadmap()}
+                      disabled={!title.trim() || isSaving}
                       className="bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
                     >
                       생성
@@ -183,6 +272,7 @@ export default function TeamRoadmapsPage() {
                 </div>
               ))}
             </div>
+            {error ? <p className="text-sm text-red-500">{error}</p> : null}
           </div>
         </section>
 
@@ -244,7 +334,8 @@ export default function TeamRoadmapsPage() {
                       size="sm"
                       variant="outline"
                       className="rounded-lg border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600"
-                      onClick={() => handleDeleteRoadmap(roadmap.id)}
+                      onClick={() => void handleDeleteRoadmap(roadmap.id)}
+                      disabled={isSaving}
                     >
                       <Trash2 className="size-4" />
                       삭제
@@ -259,3 +350,4 @@ export default function TeamRoadmapsPage() {
     </div>
   );
 }
+
