@@ -33,22 +33,23 @@ export default function Sidebar({
   const menuItems = [
     { name: "내 통계", href: "/status", icon: BarChart2 },
     { name: "내 그룹", href: "/group", icon: Users },
-    { name: "로드맵", href: "/teams/1/roadmaps", icon: BookOpen },
-    { name: "문제 검색", href: "/teams/1/problems", icon: Search },
+    { name: "로드맵", href: "/roadmaps", icon: BookOpen },
+    { name: "문제 검색", href: "/problems", icon: Search },
   ];
 
   const initials = user.name?.slice(0, 2).toUpperCase() ?? "??";
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 flex-shrink-0 flex-col border-r border-gray-100 bg-white">
-      {/* 로고 영역 */}
-      <div className="flex h-16 items-center border-b border-gray-100 px-6 bg-white">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="flex flex-col">
-            <span className="text-base font-extrabold tracking-tight text-gray-900 leading-none">
-              Solv<span className="text-[#0046FE]">PS</span>
-            </span>
+      {/* 로고 */}
+      <div className="flex h-14 items-center border-b border-gray-100 px-5">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0F46D8]">
+            <span className="text-[11px] font-black text-white">S</span>
           </div>
+          <span className="text-sm font-bold text-gray-900 tracking-tight">
+            SolvPS
+          </span>
         </Link>
       </div>
 
