@@ -1,0 +1,71 @@
+name: Build and Deploy to EC2
+
+# 워크플로우가 언제 실행될 것인지 조건 명시
+on:
+  push:
+    branches: ["production"]
+  pull_request:
+    branches: ["production"]
+
+# AWS 관련 값 변수로 설정
+env:
+  AWS_REGION: ap-northeast-2
+  AWS_S3_BUCKET: amzn-s3-solvps
+  AWS_CODE_DEPLOY_APPLICATION: solvPS
+  AWS_CODE_DEPLOY_GROUP: solvps_group
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node.js 설치
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # 공개되면 안되는 정보를 담은 .env 파일 생성
+      - name: make .env
+        run: |
+          touch ./.env
+          echo "${{ secrets.ENV }}" > ./.env
+
+      # 의존성 설치
+      - name: Install dependencies
+        run: npm ci
+
+      # 테스트 실행
+      - name: Run tests
+        run: npm test
+
+      # 빌드 파일을 zip 형식으로 압축
+      - name: Make zip file
+        run: zip -r ./$GITHUB_SHA.zip . --exclude "*.git*" --exclude "node_modules/*"
+        shell: bash
+
+      # AWS 권한
+      - name: AWS credential 설정
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.CICD_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.CICD_SECRET_KEY }}
+
+      # S3 버킷에 빌드파일(zip 파일)을 업로드
+      - name: Upload to S3
+        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.zip s3://$AWS_S3_BUCKET/$GITHUB_SHA.zip
+
+      # EC2 인스턴스에 S3에 저장되어 있던 zip 파일을 받아와 배포 시작
+      - name: EC2에 배포
+        run: aws deploy create-deployment
+          --application-name ${{ env.AWS_CODE_DEPLOY_APPLICATION }}
+          --deployment-config-name CodeDeployDefault.AllAtOnce
+          --deployment-group-name ${{ env.AWS_CODE_DEPLOY_GROUP }}
+          --s3-location bucket=$AWS_S3_BUCKET,key=$GITHUB_SHA.zip,bundleType=zip
