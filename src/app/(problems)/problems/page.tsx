@@ -74,10 +74,14 @@ export default function ProblemsPage() {
 
   const [actionError, setActionError] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
+    null,
+  );
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>("");
 
-  const [problemRoadmapMap, setProblemRoadmapMap] = useState<Record<string, number[]>>({});
+  const [problemRoadmapMap, setProblemRoadmapMap] = useState<
+    Record<string, number[]>
+  >({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -107,7 +111,10 @@ export default function ProblemsPage() {
     async function loadRoadmapsAndMappedProblems() {
       try {
         const [roadmapsRes, mapRes] = await Promise.all([
-          fetch("/api/roadmaps", { cache: "no-store", signal: controller.signal }),
+          fetch("/api/roadmaps", {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
           fetch(`/api/group/${groupId}/roadmap-problems`, {
             cache: "no-store",
             signal: controller.signal,
@@ -118,7 +125,12 @@ export default function ProblemsPage() {
           const roadmapsData = (await roadmapsRes.json()) as {
             items?: Array<{ id: number; title: string }>;
           };
-          setRoadmaps((roadmapsData.items ?? []).map((item) => ({ id: item.id, title: item.title })));
+          setRoadmaps(
+            (roadmapsData.items ?? []).map((item) => ({
+              id: item.id,
+              title: item.title,
+            })),
+          );
         } else {
           setRoadmaps([]);
         }
@@ -187,7 +199,10 @@ export default function ProblemsPage() {
     }).length;
     const avgLevel =
       problems.length > 0
-        ? Math.round((problems.reduce((sum, p) => sum + p.level, 0) / problems.length) * 10) / 10
+        ? Math.round(
+            (problems.reduce((sum, p) => sum + p.level, 0) / problems.length) *
+              10,
+          ) / 10
         : 0;
     const tags = problems.flatMap((problem) => problem.tags);
     const topTag = Object.entries(
@@ -208,8 +223,12 @@ export default function ProblemsPage() {
   function handleOpenAddDialog(problemId: string) {
     setSelectedProblemId(problemId);
     const problem = problems.find((item) => item.id === problemId);
-    const selected = problem ? (problemRoadmapMap[String(problem.bojId)] ?? []) : [];
-    const firstAvailable = roadmaps.find((roadmap) => !selected.includes(roadmap.id));
+    const selected = problem
+      ? (problemRoadmapMap[String(problem.bojId)] ?? [])
+      : [];
+    const firstAvailable = roadmaps.find(
+      (roadmap) => !selected.includes(roadmap.id),
+    );
     setSelectedRoadmapId(firstAvailable ? String(firstAvailable.id) : "");
     setActionError("");
     setAddDialogOpen(true);
@@ -280,8 +299,12 @@ export default function ProblemsPage() {
   const selectedProblem = selectedProblemId
     ? problems.find((problem) => problem.id === selectedProblemId)
     : null;
-  const selectedRoadmapIds = selectedProblem ? (problemRoadmapMap[String(selectedProblem.bojId)] ?? []) : [];
-  const availableRoadmaps = roadmaps.filter((roadmap) => !selectedRoadmapIds.includes(roadmap.id));
+  const selectedRoadmapIds = selectedProblem
+    ? (problemRoadmapMap[String(selectedProblem.bojId)] ?? [])
+    : [];
+  const availableRoadmaps = roadmaps.filter(
+    (roadmap) => !selectedRoadmapIds.includes(roadmap.id),
+  );
 
   return (
     <div className="min-h-screen bg-[#F7F8FA]">
@@ -346,7 +369,10 @@ export default function ProblemsPage() {
                 className="rounded-xl border-gray-200 bg-white pl-9"
               />
             </div>
-            <Select value={tierPreset} onValueChange={(value) => setTierPreset(value as TierPreset)}>
+            <Select
+              value={tierPreset}
+              onValueChange={(value) => setTierPreset(value as TierPreset)}
+            >
               <SelectTrigger className="rounded-xl border-gray-200 bg-white">
                 <SelectValue placeholder="난이도 선택" />
               </SelectTrigger>
@@ -375,12 +401,17 @@ export default function ProblemsPage() {
             </Select>
           </div>
         </section>
-
         <section className="space-y-3">
-          {loadError ? <p className="text-sm text-red-500">{loadError}</p> : null}
-          {actionError ? <p className="text-sm text-red-500">{actionError}</p> : null}
+          {loadError ? (
+            <p className="text-sm text-red-500">{loadError}</p>
+          ) : null}
+          {actionError ? (
+            <p className="text-sm text-red-500">{actionError}</p>
+          ) : null}
           {!groupId ? (
-            <p className="text-sm text-amber-600">그룹이 없어 로드맵 담기 기능은 비활성화됩니다.</p>
+            <p className="text-sm text-amber-600">
+              그룹이 없어 로드맵 담기 기능은 비활성화됩니다.
+            </p>
           ) : null}
           {isLoading ? (
             <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
@@ -428,7 +459,10 @@ export default function ProblemsPage() {
 
                   <div className="mb-3 flex flex-wrap gap-1.5">
                     {problem.tags.map((tag) => (
-                      <Badge key={tag} className="border border-gray-200 bg-white text-gray-600">
+                      <Badge
+                        key={tag}
+                        className="border border-gray-200 bg-white text-gray-600"
+                      >
                         {tag}
                       </Badge>
                     ))}
@@ -534,7 +568,10 @@ export default function ProblemsPage() {
               <DialogTitle>로드맵에 담기</DialogTitle>
               <DialogDescription>담을 로드맵을 선택하세요.</DialogDescription>
             </DialogHeader>
-            <Select value={selectedRoadmapId} onValueChange={setSelectedRoadmapId}>
+            <Select
+              value={selectedRoadmapId}
+              onValueChange={setSelectedRoadmapId}
+            >
               <SelectTrigger className="w-full rounded-xl border-blue-200">
                 <SelectValue placeholder="로드맵 선택" />
               </SelectTrigger>
@@ -547,7 +584,9 @@ export default function ProblemsPage() {
               </SelectContent>
             </Select>
             {availableRoadmaps.length === 0 ? (
-              <p className="text-sm text-muted-foreground">이미 모든 로드맵에 담긴 문제입니다.</p>
+              <p className="text-sm text-muted-foreground">
+                이미 모든 로드맵에 담긴 문제입니다.
+              </p>
             ) : null}
             <DialogFooter>
               <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
@@ -555,7 +594,11 @@ export default function ProblemsPage() {
               </Button>
               <Button
                 onClick={() => void handleAddToRoadmap()}
-                disabled={!selectedRoadmapId || availableRoadmaps.length === 0 || !groupId}
+                disabled={
+                  !selectedRoadmapId ||
+                  availableRoadmaps.length === 0 ||
+                  !groupId
+                }
                 className="bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
               >
                 담기
