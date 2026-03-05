@@ -22,6 +22,6 @@ if [ -f "${BACKUP_ENV_PATH}" ]; then
   cp "${BACKUP_ENV_PATH}" "${TARGET_ENV_PATH}"
   safe_log ">>> .env 복원 완료: ${TARGET_ENV_PATH}"
 else
-  safe_err ">>> ERROR: 백업된 .env가 없습니다 (${BACKUP_ENV_PATH})"
+  safe_err ">>> ERROR: 백업된 .env가 없습니다 (${BACKUP_ENV_PATH}). BeforeInstall 백업 단계 확인 필요"
   exit 1
 fi
