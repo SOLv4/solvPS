@@ -4,14 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Filter, Layers3, Search, Sparkles, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -73,11 +65,8 @@ export default function ProblemsPage() {
   const [tagPreset, setTagPreset] = useState<TagPreset>("all");
 
   const [actionError, setActionError] = useState("");
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
-    null,
-  );
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>("");
+  const [selectedProblemIds, setSelectedProblemIds] = useState<string[]>([]);
 
   const [problemRoadmapMap, setProblemRoadmapMap] = useState<
     Record<string, number[]>
@@ -152,6 +141,12 @@ export default function ProblemsPage() {
   }, [groupId]);
 
   useEffect(() => {
+    if (!selectedRoadmapId && roadmaps.length > 0) {
+      setSelectedRoadmapId(String(roadmaps[0].id));
+    }
+  }, [roadmaps, selectedRoadmapId]);
+
+  useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setIsLoading(true);
@@ -220,91 +215,68 @@ export default function ProblemsPage() {
     };
   }, [problems, problemRoadmapMap]);
 
-  function handleOpenAddDialog(problemId: string) {
-    setSelectedProblemId(problemId);
-    const problem = problems.find((item) => item.id === problemId);
-    const selected = problem
-      ? (problemRoadmapMap[String(problem.bojId)] ?? [])
-      : [];
-    const firstAvailable = roadmaps.find(
-      (roadmap) => !selected.includes(roadmap.id),
-    );
-    setSelectedRoadmapId(firstAvailable ? String(firstAvailable.id) : "");
-    setActionError("");
-    setAddDialogOpen(true);
+  function isInSelectedRoadmap(problem: Problem) {
+    if (!selectedRoadmapId) return false;
+    const roadmapIds = problemRoadmapMap[String(problem.bojId)] ?? [];
+    return roadmapIds.includes(Number(selectedRoadmapId));
   }
 
-  async function handleAddToRoadmap() {
-    if (!groupId || !selectedProblemId || !selectedRoadmapId) return;
+  function handleToggleProblem(problem: Problem) {
+    if (!selectedRoadmapId || isInSelectedRoadmap(problem)) return;
+    setSelectedProblemIds((prev) =>
+      prev.includes(problem.id)
+        ? prev.filter((id) => id !== problem.id)
+        : [...prev, problem.id],
+    );
+  }
 
-    const problem = problems.find((item) => item.id === selectedProblemId);
-    if (!problem) return;
+  async function handleAddSelectedToRoadmap() {
+    if (!groupId || !selectedRoadmapId || selectedProblemIds.length === 0) return;
+    const targetProblems = problems.filter(
+      (problem) =>
+        selectedProblemIds.includes(problem.id) && !isInSelectedRoadmap(problem),
+    );
+    if (targetProblems.length === 0) return;
 
     try {
-      const res = await fetch(`/api/group/${groupId}/roadmap-problems`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bojId: problem.bojId,
-          title: problem.title,
-          level: problem.level,
-          roadmapId: Number(selectedRoadmapId),
-        }),
-      });
+      const results = await Promise.all(
+        targetProblems.map((problem) =>
+          fetch(`/api/group/${groupId}/roadmap-problems`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bojId: problem.bojId,
+              title: problem.title,
+              level: problem.level,
+              roadmapId: Number(selectedRoadmapId),
+            }),
+          }),
+        ),
+      );
 
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const failed = results.find((res) => !res.ok);
+      if (failed) {
+        const data = (await failed.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? "로드맵 추가 실패");
       }
 
       setProblemRoadmapMap((prev) => {
-        const key = String(problem.bojId);
-        const prevIds = prev[key] ?? [];
-        if (prevIds.includes(Number(selectedRoadmapId))) return prev;
-        return { ...prev, [key]: [...prevIds, Number(selectedRoadmapId)] };
+        const next = { ...prev };
+        targetProblems.forEach((problem) => {
+          const key = String(problem.bojId);
+          const prevIds = next[key] ?? [];
+          if (!prevIds.includes(Number(selectedRoadmapId))) {
+            next[key] = [...prevIds, Number(selectedRoadmapId)];
+          }
+        });
+        return next;
       });
-      setAddDialogOpen(false);
+      setSelectedProblemIds([]);
+      setActionError("");
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "로드맵 추가 실패");
     }
   }
-
-  async function handleRemoveFromRoadmap(problem: Problem) {
-    const roadmapIds = problemRoadmapMap[String(problem.bojId)] ?? [];
-    if (!groupId || roadmapIds.length === 0) return;
-
-    setActionError("");
-    try {
-      await Promise.all(
-        roadmapIds.map(async (roadmapId) => {
-          const res = await fetch(`/api/group/${groupId}/roadmap-problems`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bojId: problem.bojId, roadmapId }),
-          });
-          if (!res.ok) throw new Error("삭제 실패");
-        }),
-      );
-
-      setProblemRoadmapMap((prev) => {
-        const next = { ...prev };
-        delete next[String(problem.bojId)];
-        return next;
-      });
-    } catch {
-      setActionError("문제 제거에 실패했습니다.");
-    }
-  }
-
-  const selectedProblem = selectedProblemId
-    ? problems.find((problem) => problem.id === selectedProblemId)
-    : null;
-  const selectedRoadmapIds = selectedProblem
-    ? (problemRoadmapMap[String(selectedProblem.bojId)] ?? [])
-    : [];
-  const availableRoadmaps = roadmaps.filter(
-    (roadmap) => !selectedRoadmapIds.includes(roadmap.id),
-  );
 
   return (
     <div className="min-h-screen bg-[#F7F8FA]">
@@ -401,6 +373,34 @@ export default function ProblemsPage() {
             </Select>
           </div>
         </section>
+
+        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 className="text-base font-semibold text-slate-800">로드맵 담기</h2>
+            <p className="text-xs text-gray-500">로드맵 선택 후 문제를 체크해서 담으세요.</p>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+            <Select value={selectedRoadmapId} onValueChange={setSelectedRoadmapId}>
+              <SelectTrigger className="rounded-xl border-blue-200 bg-white">
+                <SelectValue placeholder="담을 로드맵 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {roadmaps.map((roadmap) => (
+                  <SelectItem key={roadmap.id} value={String(roadmap.id)}>
+                    {roadmap.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => void handleAddSelectedToRoadmap()}
+              disabled={!groupId || !selectedRoadmapId || selectedProblemIds.length === 0}
+              className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
+            >
+              선택 문제 담기 ({selectedProblemIds.length})
+            </Button>
+          </div>
+        </section>
         <section className="space-y-3">
           {loadError ? (
             <p className="text-sm text-red-500">{loadError}</p>
@@ -483,22 +483,21 @@ export default function ProblemsPage() {
                       </a>
                     </Button>
                     <Button
-                      className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
-                      onClick={() => handleOpenAddDialog(problem.id)}
-                      disabled={!groupId || roadmaps.length === 0}
+                      variant={selectedProblemIds.includes(problem.id) ? "default" : "outline"}
+                      className={
+                        selectedProblemIds.includes(problem.id)
+                          ? "rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
+                          : "rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                      }
+                      onClick={() => handleToggleProblem(problem)}
+                      disabled={!groupId || !selectedRoadmapId || isInSelectedRoadmap(problem)}
                     >
-                      로드맵에 담기
+                      {isInSelectedRoadmap(problem)
+                        ? "이미 선택 로드맵에 담김"
+                        : selectedProblemIds.includes(problem.id)
+                          ? "선택됨"
+                          : "선택"}
                     </Button>
-                    {inRoadmap ? (
-                      <Button
-                        variant="outline"
-                        className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => void handleRemoveFromRoadmap(problem)}
-                        disabled={!groupId}
-                      >
-                        모두 빼기
-                      </Button>
-                    ) : null}
                   </div>
                 </article>
               );
@@ -561,51 +560,6 @@ export default function ProblemsPage() {
             </PaginationContent>
           </Pagination>
         ) : null}
-
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent className="rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>로드맵에 담기</DialogTitle>
-              <DialogDescription>담을 로드맵을 선택하세요.</DialogDescription>
-            </DialogHeader>
-            <Select
-              value={selectedRoadmapId}
-              onValueChange={setSelectedRoadmapId}
-            >
-              <SelectTrigger className="w-full rounded-xl border-blue-200">
-                <SelectValue placeholder="로드맵 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableRoadmaps.map((roadmap) => (
-                  <SelectItem key={roadmap.id} value={String(roadmap.id)}>
-                    {roadmap.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {availableRoadmaps.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                이미 모든 로드맵에 담긴 문제입니다.
-              </p>
-            ) : null}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                취소
-              </Button>
-              <Button
-                onClick={() => void handleAddToRoadmap()}
-                disabled={
-                  !selectedRoadmapId ||
-                  availableRoadmaps.length === 0 ||
-                  !groupId
-                }
-                className="bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
-              >
-                담기
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

@@ -21,8 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-type Group = { id: number; name: string };
-
 type Roadmap = {
   id: number;
   title: string;
@@ -35,27 +33,12 @@ type Roadmap = {
 
 export default function RoadmapsPage() {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
-  async function loadGroups(signal?: AbortSignal) {
-    try {
-      const res = await fetch("/api/group", { cache: "no-store", signal });
-      if (!res.ok) return;
-      const data = (await res.json()) as Group[];
-      if (!Array.isArray(data)) return;
-      setGroups(data);
-      setSelectedGroupId((prev) => prev ?? data[0]?.id ?? null);
-    } catch {
-      // 그룹이 없으면 null 유지
-    }
-  }
 
   async function loadRoadmaps(signal?: AbortSignal) {
     setError("");
@@ -72,8 +55,6 @@ export default function RoadmapsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadGroups(controller.signal);
-
     void loadRoadmaps(controller.signal);
     return () => controller.abort();
   }, []);
@@ -120,7 +101,6 @@ export default function RoadmapsPage() {
         body: JSON.stringify({
           title: trimmedTitle,
           description: description.trim(),
-          teamId: selectedGroupId,
         }),
       });
 
@@ -206,17 +186,6 @@ export default function RoadmapsPage() {
                         placeholder="예: 점화식 기반 핵심 문제 모음"
                       />
                     </div>
-                    {groups.length > 0 ? (
-                      <p className="text-xs text-gray-500">
-                        연결 그룹:{" "}
-                        {groups.find((group) => group.id === selectedGroupId)
-                          ?.name ?? "-"}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        연결 가능한 그룹이 없습니다. 그룹 가입 후 생성하세요.
-                      </p>
-                    )}
                   </div>
                   <DialogFooter>
                     <Button
