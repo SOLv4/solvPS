@@ -1,25 +1,40 @@
 #!/bin/bash
+set -euo pipefail
 
-echo ">>> 배포 시작" >> /home/ubuntu/deploy.log
+LOG_DIR="/home/ubuntu/.deploy_logs"
+LOG_FILE="${LOG_DIR}/deploy.log"
+ERR_LOG_FILE="${LOG_DIR}/deploy_err.log"
+
+mkdir -p "${LOG_DIR}"
+
+log() {
+  echo "$1" >> "${LOG_FILE}" 2>/dev/null || true
+}
+
+log_err() {
+  echo "$1" >> "${ERR_LOG_FILE}" 2>/dev/null || true
+}
+
+log ">>> 배포 시작"
 
 cd /home/ubuntu/app
 
 if [ ! -f /home/ubuntu/app/.env ]; then
-  echo ">>> ERROR: /home/ubuntu/app/.env 파일이 없습니다. 배포 중단" >> /home/ubuntu/deploy_err.log
+  log_err ">>> ERROR: /home/ubuntu/app/.env 파일이 없습니다. 배포 중단"
   exit 1
 fi
 
-echo ">>> 의존성 설치" >> /home/ubuntu/deploy.log
-npm install >> /home/ubuntu/deploy.log 2>> /home/ubuntu/deploy_err.log
+log ">>> 의존성 설치"
+npm install >> "${LOG_FILE}" 2>> "${ERR_LOG_FILE}"
 
-echo ">>> 빌드" >> /home/ubuntu/deploy.log
-npm run build >> /home/ubuntu/deploy.log 2>> /home/ubuntu/deploy_err.log
+log ">>> 빌드"
+npm run build >> "${LOG_FILE}" 2>> "${ERR_LOG_FILE}"
 
-echo ">>> 현재 실행중인 애플리케이션 종료" >> /home/ubuntu/deploy.log
+log ">>> 현재 실행중인 애플리케이션 종료"
 pm2 delete solvps 2>/dev/null || true
 
-echo ">>> 애플리케이션 실행" >> /home/ubuntu/deploy.log
-pm2 start npm --name solvps -- start >> /home/ubuntu/deploy.log 2>> /home/ubuntu/deploy_err.log
-pm2 save >> /home/ubuntu/deploy.log
+log ">>> 애플리케이션 실행"
+pm2 start npm --name solvps -- start >> "${LOG_FILE}" 2>> "${ERR_LOG_FILE}"
+pm2 save >> "${LOG_FILE}" 2>> "${ERR_LOG_FILE}"
 
-echo ">>> 배포 완료" >> /home/ubuntu/deploy.log
+log ">>> 배포 완료"
