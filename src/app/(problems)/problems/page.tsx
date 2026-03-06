@@ -28,7 +28,11 @@ import {
   type TierPreset,
 } from "@/lib/mock";
 
-type Roadmap = { id: number; title: string };
+type Roadmap = {
+  id: number;
+  title: string;
+  isOwner: boolean;
+};
 type Group = { id: number; [key: string]: unknown };
 
 const PAGE_SIZE = 20;
@@ -112,13 +116,16 @@ export default function ProblemsPage() {
 
         if (roadmapsRes.ok) {
           const roadmapsData = (await roadmapsRes.json()) as {
-            items?: Array<{ id: number; title: string }>;
+            items?: Array<{ id: number; title: string; isOwner: boolean }>;
           };
           setRoadmaps(
-            (roadmapsData.items ?? []).map((item) => ({
-              id: item.id,
-              title: item.title,
-            })),
+            (roadmapsData.items ?? [])
+              .filter((item) => item.isOwner)
+              .map((item) => ({
+                id: item.id,
+                title: item.title,
+                isOwner: item.isOwner,
+              })),
           );
         } else {
           setRoadmaps([]);
@@ -141,7 +148,12 @@ export default function ProblemsPage() {
   }, [groupId]);
 
   useEffect(() => {
-    if (!selectedRoadmapId && roadmaps.length > 0) {
+    if (roadmaps.length === 0) {
+      setSelectedRoadmapId("");
+      return;
+    }
+    const exists = roadmaps.some((roadmap) => String(roadmap.id) === selectedRoadmapId);
+    if (!exists) {
       setSelectedRoadmapId(String(roadmaps[0].id));
     }
   }, [roadmaps, selectedRoadmapId]);
@@ -232,6 +244,13 @@ export default function ProblemsPage() {
 
   async function handleAddSelectedToRoadmap() {
     if (!groupId || !selectedRoadmapId || selectedProblemIds.length === 0) return;
+    const selectedRoadmap = roadmaps.find(
+      (roadmap) => String(roadmap.id) === selectedRoadmapId,
+    );
+    if (!selectedRoadmap?.isOwner) {
+      setActionError("로드맵 작성자만 문제를 담을 수 있습니다.");
+      return;
+    }
     const targetProblems = problems.filter(
       (problem) =>
         selectedProblemIds.includes(problem.id) && !isInSelectedRoadmap(problem),
@@ -387,7 +406,12 @@ export default function ProblemsPage() {
             </Select>
             <Button
               onClick={() => void handleAddSelectedToRoadmap()}
-              disabled={!groupId || !selectedRoadmapId || selectedProblemIds.length === 0}
+              disabled={
+                !groupId ||
+                !selectedRoadmapId ||
+                selectedProblemIds.length === 0 ||
+                !roadmaps.find((roadmap) => String(roadmap.id) === selectedRoadmapId)?.isOwner
+              }
               className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
             >
               선택 문제 담기 ({selectedProblemIds.length})
@@ -420,7 +444,6 @@ export default function ProblemsPage() {
           {!isLoading &&
             problems.map((problem) => {
               const roadmapIds = problemRoadmapMap[String(problem.bojId)] ?? [];
-              const inRoadmap = roadmapIds.length > 0;
               return (
                 <article
                   key={problem.id}
@@ -435,17 +458,6 @@ export default function ProblemsPage() {
                     <div className="flex items-center gap-2">
                       <Badge className="border border-blue-200 bg-[#F2F7FF] text-[#0F46D8]">
                         {tierLabel(problem.level)}
-                      </Badge>
-                      <Badge
-                        className={
-                          inRoadmap
-                            ? "border border-blue-200 bg-[#0F46D8] text-white"
-                            : "border border-slate-200 bg-white text-slate-600"
-                        }
-                      >
-                        {inRoadmap
-                          ? `로드맵 편입 (${roadmapIds.length})`
-                          : "미편입"}
                       </Badge>
                     </div>
                   </div>
@@ -483,7 +495,12 @@ export default function ProblemsPage() {
                           : "rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
                       }
                       onClick={() => handleToggleProblem(problem)}
-                      disabled={!groupId || !selectedRoadmapId || isInSelectedRoadmap(problem)}
+                      disabled={
+                        !groupId ||
+                        !selectedRoadmapId ||
+                        isInSelectedRoadmap(problem) ||
+                        !roadmaps.find((roadmap) => String(roadmap.id) === selectedRoadmapId)?.isOwner
+                      }
                     >
                       {isInSelectedRoadmap(problem)
                         ? "이미 선택 로드맵에 담김"

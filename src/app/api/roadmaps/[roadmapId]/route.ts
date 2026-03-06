@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { roadmaps, roadmapSteps, roadmapProblems, problems } from "@/lib/db/schema";
+import { auth } from "@/lib/auth/index";
+import { problems, roadmapProblems, roadmaps, roadmapSteps, users } from "@/lib/db/schema";
 
 // GET /api/roadmaps/[roadmapId]
 // 로드맵 상세 + 스텝 + 문제 조회 (팀 인증 불필요)
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ roadmapId: string }> }
 ) {
+  const session = await auth.api.getSession({ headers: req.headers }).catch(() => null);
+  const sessionUserId = session ? Number(session.user.id) : null;
+
   const { roadmapId: roadmapIdStr } = await params;
   const roadmapId = Number(roadmapIdStr);
   if (isNaN(roadmapId)) return NextResponse.json({ error: "Invalid roadmap id" }, { status: 400 });
 
   const [roadmap] = await db
-    .select({ id: roadmaps.id, title: roadmaps.title, description: roadmaps.description })
+    .select({
+      id: roadmaps.id,
+      title: roadmaps.title,
+      description: roadmaps.description,
+      createdBy: roadmaps.created_by,
+      creatorName: users.name,
+    })
     .from(roadmaps)
+    .innerJoin(users, eq(users.id, roadmaps.created_by))
     .where(eq(roadmaps.id, roadmapId));
 
   if (!roadmap) return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
@@ -64,5 +75,11 @@ export async function GET(
     }
   }
 
-  return NextResponse.json({ roadmap, steps: [...stepsMap.values()] });
+  return NextResponse.json({
+    roadmap: {
+      ...roadmap,
+      isOwner: sessionUserId != null && roadmap.createdBy === sessionUserId,
+    },
+    steps: [...stepsMap.values()],
+  });
 }

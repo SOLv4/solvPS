@@ -26,6 +26,8 @@ type Roadmap = {
   title: string;
   description: string | null;
   createdAt: string;
+  creatorName: string;
+  isOwner: boolean;
   problemsCount: number;
   teamId: number | null;
   teamName: string | null;
@@ -271,12 +273,11 @@ export default function RoadmapsPage() {
                     <p className="mt-1 text-sm text-slate-500">
                       {roadmap.description || "설명 없음"}
                     </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      작성자: {roadmap.creatorName}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] text-slate-500">
-                      {roadmap.teamName ?? "그룹 미연결"}
-                    </p>
-
                     <p className="text-[11px] text-slate-500">문제 수</p>
                     <p className="text-base font-bold text-[#0F46D8]">
                       {roadmap.problemsCount}
@@ -305,16 +306,18 @@ export default function RoadmapsPage() {
                     >
                       <Link href={detailHref}>상세 보기</Link>
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-lg border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600"
-                      onClick={() => void handleDeleteRoadmap(roadmap.id)}
-                      disabled={isSaving}
-                    >
-                      <Trash2 className="size-4" />
-                      삭제
-                    </Button>
+                    {roadmap.isOwner ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => void handleDeleteRoadmap(roadmap.id)}
+                        disabled={isSaving}
+                      >
+                        <Trash2 className="size-4" />
+                        삭제
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </article>
