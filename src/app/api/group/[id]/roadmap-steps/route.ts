@@ -37,7 +37,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     .select()
     .from(teamRoadmaps)
     .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, roadmapId)));
-  if (!roadmapLink) return NextResponse.json({ error: "Roadmap not found in team" }, { status: 404 });
 
   const [roadmapOwner] = await db
     .select({ createdBy: roadmaps.created_by })
@@ -50,6 +49,19 @@ export async function POST(req: NextRequest, { params }: Params) {
       { error: "로드맵 작성자만 스텝을 추가할 수 있습니다." },
       { status: 403 },
     );
+  }
+
+  // 그룹에 아직 연결되지 않은 로드맵이라도 작성자면 수정을 시작할 수 있도록
+  // 최초 수정 시 team_roadmaps 링크를 자동 생성한다.
+  if (!roadmapLink) {
+    await db
+      .insert(teamRoadmaps)
+      .values({
+        team_id: teamId,
+        roadmap_id: roadmapId,
+        added_by: Number(session.user.id),
+      })
+      .onConflictDoNothing();
   }
 
   const [maxRow] = await db
