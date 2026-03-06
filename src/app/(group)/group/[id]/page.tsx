@@ -519,12 +519,23 @@ export default function GroupDashboard() {
                   크롬 확장 프로그램 설정 가이드
                 </h2>
               </div>
-              <button
-                onClick={() => setIntegrationOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <ChevronDown className="rotate-180" size={20} />
-              </button>
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://chromewebstore.google.com/detail/blnmcofelcnmojcpcpjonjilblgeehkp?utm_source=item-share-cb"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-lg shadow-blue-600/20"
+                >
+                  <PlusCircle size={14} />
+                  확장프로그램 바로 추가하기
+                </a>
+                <button
+                  onClick={() => setIntegrationOpen(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <ChevronDown className="rotate-180" size={20} />
+                </button>
+              </div>
             </div>
             <div className="p-8 grid md:grid-cols-2 gap-6 bg-white">
               <div className="space-y-4">
