@@ -90,7 +90,7 @@ export default function GroupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="mx-auto max-w-2xl space-y-5">
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">

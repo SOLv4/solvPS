@@ -53,7 +53,7 @@
   --brand-2: #2e67fe;
   --brand-bg: #ffffff;
   /* #FFFFFF */
-  --background: oklch(1 0 0);
+  --background: oklch(0.985 0.001 106);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0 0);
@@ -129,6 +129,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

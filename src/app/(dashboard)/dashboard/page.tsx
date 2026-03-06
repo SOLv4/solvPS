@@ -87,7 +87,7 @@ export default function GroupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-2xl">
         {/* 헤더 */}
         <div className="mb-10 text-center">

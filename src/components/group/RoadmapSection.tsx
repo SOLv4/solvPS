@@ -33,13 +33,17 @@ export default function RoadmapSection({
   if (roadmaps.length === 0) {
     return (
       <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4 text-slate-400">
           <div className="flex items-center gap-2.5">
             <Map size={14} className="text-[#0F46D8]" />
             <h2 className="text-sm font-semibold text-gray-800">로드맵</h2>
           </div>
-          {action}
         </div>
+        {action && (
+          <div className="px-5 py-4 border-b border-gray-50">
+            {action}
+          </div>
+        )}
         <div className="p-5">
           <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
             아직 로드맵이 없습니다.
@@ -57,12 +61,17 @@ export default function RoadmapSection({
           <h2 className="text-sm font-semibold text-gray-800">로드맵</h2>
         </div>
         <div className="flex items-center gap-2">
-          {action}
           <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
             {roadmaps.length}개 트랙
           </span>
         </div>
       </div>
+
+      {action && (
+        <div className="px-5 py-4 border-b border-gray-50">
+          {action}
+        </div>
+      )}
 
       <div className="divide-y divide-gray-100">
         {roadmaps.map((roadmap, index) => {
@@ -91,11 +100,10 @@ export default function RoadmapSection({
                     {stepCount}단계
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${
-                      completionPct === 100
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${completionPct === 100
                         ? "border-green-300 bg-green-50 text-green-700"
                         : "border-blue-200 bg-[#EEF4FF] text-[#0F46D8]"
-                    }`}
+                      }`}
                   >
                     {completedCount}/{stepCount} 완료
                   </span>
@@ -123,41 +131,41 @@ export default function RoadmapSection({
                 {visibleSteps.map((step, stepIndex) => {
                   const done = !!progress[step.id];
                   return (
-                  <li
-                    key={step.id}
-                    className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 transition-colors ${
-                      done
-                        ? "border-green-200 bg-green-50/60"
-                        : "border-gray-100 bg-gray-50"
-                    }`}
-                  >
-                    <button
-                      onClick={() => onToggle(step.id, !done)}
-                      className="mt-0.5 shrink-0"
-                      aria-label={done ? "완료 취소" : "완료 표시"}
+                    <li
+                      key={step.id}
+                      className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 transition-colors ${done
+                          ? "border-green-200 bg-green-50/60"
+                          : "border-gray-100 bg-gray-50"
+                        }`}
                     >
-                      {done ? (
-                        <CheckCircle2 size={18} className="text-green-500" />
-                      ) : (
-                        <Circle size={18} className="text-slate-300" />
+                      <button
+                        onClick={() => onToggle(step.id, !done)}
+                        className="mt-0.5 shrink-0"
+                        aria-label={done ? "완료 취소" : "완료 표시"}
+                      >
+                        {done ? (
+                          <CheckCircle2 size={18} className="text-green-500" />
+                        ) : (
+                          <Circle size={18} className="text-slate-300" />
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium ${done ? "text-slate-400 line-through" : "text-gray-700"}`}>
+                          {step.title}
+                        </p>
+                        {step.description && (
+                          <p className="mt-0.5 text-[11px] text-gray-400">{step.description}</p>
+                        )}
+                      </div>
+                      {stepIndex === 0 && !done && (
+                        <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[#EEF4FF] text-[#0F46D8]">
+                          <Flag size={9} />
+                          START
+                        </span>
                       )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium ${done ? "text-slate-400 line-through" : "text-gray-700"}`}>
-                        {step.title}
-                      </p>
-                      {step.description && (
-                        <p className="mt-0.5 text-[11px] text-gray-400">{step.description}</p>
-                      )}
-                    </div>
-                    {stepIndex === 0 && !done && (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[#EEF4FF] text-[#0F46D8]">
-                        <Flag size={9} />
-                        START
-                      </span>
-                    )}
-                  </li>
-                )})}
+                    </li>
+                  )
+                })}
               </ol>
 
               {stepCount > visibleSteps.length && (

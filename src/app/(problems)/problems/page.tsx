@@ -34,7 +34,7 @@ type Roadmap = {
   title: string;
   isOwner: boolean;
 };
-type Group = { id: number; [key: string]: unknown };
+type Group = { id: number;[key: string]: unknown };
 
 const PAGE_SIZE = 20;
 
@@ -301,274 +301,272 @@ export default function ProblemsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA]">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-          <div className="space-y-5">
-            <div>
-              <p className="text-xs font-medium text-gray-400">문제 검색</p>
-              <h1 className="mt-1 text-2xl font-bold text-gray-900">
-                문제 검색
-              </h1>
-              <p className="mt-1 text-sm text-gray-400">
-                난이도/태그 기준으로 문제를 필터링하고 선택한 로드맵에 담으세요.
+    <div className="mx-auto max-w-6xl px-6 py-10 space-y-8">
+      <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+        <div className="space-y-5">
+          <div>
+            <p className="text-xs font-medium text-gray-400">문제 검색</p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900">
+              문제 검색
+            </h1>
+            <p className="mt-1 text-sm text-gray-400">
+              난이도/태그 기준으로 문제를 필터링하고 선택한 로드맵에 담으세요.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+            <div className="rounded-xl border border-gray-100 p-3.5">
+              <p className="text-xs text-gray-400">검색 결과</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
+                <Search size={16} />
+                {summary.total}
               </p>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">검색 결과</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Search size={16} />
-                  {summary.total}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">주요 태그</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Sparkles size={16} />
-                  <span className="truncate">{summary.topTag}</span>
-                </p>
-              </div>
+            <div className="rounded-xl border border-gray-100 p-3.5">
+              <p className="text-xs text-gray-400">주요 태그</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
+                <Sparkles size={16} />
+                <span className="truncate">{summary.topTag}</span>
+              </p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Filter size={17} className="text-[#0F46D8]" />
-            <h2 className="text-base font-semibold text-slate-800">필터</h2>
+      <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <Filter size={17} className="text-[#0F46D8]" />
+          <h2 className="text-base font-semibold text-slate-800">필터</h2>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[1.5fr_0.5fr_0.7fr]">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+            <Input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="문제명 또는 BOJ 번호 검색"
+              className="rounded-xl border-gray-200 bg-white pl-9"
+            />
           </div>
-          <div className="grid gap-3 lg:grid-cols-[1.5fr_0.5fr_0.7fr]">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
-              <Input
-                value={q}
-                onChange={(event) => setQ(event.target.value)}
-                placeholder="문제명 또는 BOJ 번호 검색"
-                className="rounded-xl border-gray-200 bg-white pl-9"
-              />
-            </div>
-            <Select
-              value={tierPreset}
-              onValueChange={(value) => setTierPreset(value as TierPreset)}
-            >
-              <SelectTrigger className="rounded-xl border-gray-200 bg-white">
-                <SelectValue placeholder="난이도 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {tierPresetOptions.map((preset) => (
-                  <SelectItem key={preset.value} value={preset.value}>
-                    난이도 {preset.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={tagPreset}
-              onValueChange={(value) => setTagPreset(value as TagPreset)}
-            >
-              <SelectTrigger className="rounded-xl border-gray-200 bg-white">
-                <SelectValue placeholder="태그 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {tagPresetOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
-            <Select
-              value={selectedRoadmapId}
-              onValueChange={setSelectedRoadmapId}
-              disabled={isStepTargetMode}
-            >
-              <SelectTrigger className="rounded-xl border-blue-200 bg-white">
-                <SelectValue placeholder="담을 로드맵 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {roadmaps.map((roadmap) => (
-                  <SelectItem key={roadmap.id} value={String(roadmap.id)}>
-                    {roadmap.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={() => void handleAddSelectedToRoadmap()}
-              disabled={
-                !groupId ||
-                !selectedRoadmapId ||
-                selectedProblemIds.length === 0 ||
-                !roadmaps.find((roadmap) => String(roadmap.id) === selectedRoadmapId)?.isOwner
-              }
-              className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
-            >
-              선택 문제 담기 ({selectedProblemIds.length})
-            </Button>
-          </div>
-          {isStepTargetMode ? (
-            <p className="mt-2 text-xs text-gray-500">
-              스텝에서 이동한 상태입니다. 선택한 문제는 지정된 스텝에 바로 추가됩니다.
-            </p>
-          ) : null}
-        </section>
-        <section className="space-y-3">
-          {loadError ? (
-            <p className="text-sm text-red-500">{loadError}</p>
-          ) : null}
-          {actionError ? (
-            <p className="text-sm text-red-500">{actionError}</p>
-          ) : null}
-          {!groupId ? (
-            <p className="text-sm text-amber-600">
-              그룹이 없어 로드맵 담기 기능은 비활성화됩니다.
-            </p>
-          ) : null}
-          {isLoading ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
-              검색 결과를 불러오는 중...
-            </div>
-          ) : null}
-          {!isLoading && problems.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
-              검색 결과가 없습니다.
-            </div>
-          ) : null}
-
-          {!isLoading &&
-            problems.map((problem) => {
-              const roadmapIds = problemRoadmapMap[String(problem.bojId)] ?? [];
-              return (
-                <article
-                  key={problem.id}
-                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-gray-200"
-                >
-                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {problem.bojId}. {problem.title}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="border border-blue-200 bg-[#F2F7FF] text-[#0F46D8]">
-                        {tierLabel(problem.level)}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="mb-3 flex flex-wrap gap-1.5">
-                    {problem.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        className="border border-gray-200 bg-white text-gray-600"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
-                    >
-                      <a
-                        href={`https://www.acmicpc.net/problem/${problem.bojId}`}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        문제 보기
-                      </a>
-                    </Button>
-                    <Button
-                      variant={selectedProblemIds.includes(problem.id) ? "default" : "outline"}
-                      className={
-                        selectedProblemIds.includes(problem.id)
-                          ? "rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
-                          : "rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
-                      }
-                      onClick={() => handleToggleProblem(problem)}
-                      disabled={
-                        !groupId ||
-                        !selectedRoadmapId ||
-                        isInSelectedRoadmap(problem) ||
-                        !roadmaps.find((roadmap) => String(roadmap.id) === selectedRoadmapId)?.isOwner
-                      }
-                    >
-                      {isInSelectedRoadmap(problem)
-                        ? "이미 선택 로드맵에 담김"
-                        : selectedProblemIds.includes(problem.id)
-                          ? "선택됨"
-                          : "선택"}
-                    </Button>
-                  </div>
-                </article>
-              );
-            })}
-        </section>
-
-        {/* 페이지네이션 */}
-        {currentPage > 1 || !isLastPage ? (
-          <Pagination className="mt-2">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) setCurrentPage((p) => p - 1);
-                  }}
-                  className={
-                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
-                  }
-                />
-              </PaginationItem>
-              {Array.from(
-                {
-                  length: Math.min(
-                    5,
-                    isLastPage ? currentPage : currentPage + 2,
-                  ),
-                },
-                (_, i) => {
-                  const start = Math.max(1, currentPage - 2);
-                  const page = start + i;
-                  if (isLastPage && page > currentPage) return null;
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        href="#"
-                        isActive={page === currentPage}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage(page);
-                        }}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                },
-              )}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (!isLastPage) setCurrentPage((p) => p + 1);
-                  }}
-                  className={isLastPage ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <Select
+            value={tierPreset}
+            onValueChange={(value) => setTierPreset(value as TierPreset)}
+          >
+            <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+              <SelectValue placeholder="난이도 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {tierPresetOptions.map((preset) => (
+                <SelectItem key={preset.value} value={preset.value}>
+                  난이도 {preset.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={tagPreset}
+            onValueChange={(value) => setTagPreset(value as TagPreset)}
+          >
+            <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+              <SelectValue placeholder="태그 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {tagPresetOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <Select
+            value={selectedRoadmapId}
+            onValueChange={setSelectedRoadmapId}
+            disabled={isStepTargetMode}
+          >
+            <SelectTrigger className="rounded-xl border-blue-200 bg-white">
+              <SelectValue placeholder="담을 로드맵 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {roadmaps.map((roadmap) => (
+                <SelectItem key={roadmap.id} value={String(roadmap.id)}>
+                  {roadmap.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={() => void handleAddSelectedToRoadmap()}
+            disabled={
+              !groupId ||
+              !selectedRoadmapId ||
+              selectedProblemIds.length === 0 ||
+              !roadmaps.find((roadmap) => String(roadmap.id) === selectedRoadmapId)?.isOwner
+            }
+            className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
+          >
+            선택 문제 담기 ({selectedProblemIds.length})
+          </Button>
+        </div>
+        {isStepTargetMode ? (
+          <p className="mt-2 text-xs text-gray-500">
+            스텝에서 이동한 상태입니다. 선택한 문제는 지정된 스텝에 바로 추가됩니다.
+          </p>
         ) : null}
-      </div>
+      </section>
+      <section className="space-y-3">
+        {loadError ? (
+          <p className="text-sm text-red-500">{loadError}</p>
+        ) : null}
+        {actionError ? (
+          <p className="text-sm text-red-500">{actionError}</p>
+        ) : null}
+        {!groupId ? (
+          <p className="text-sm text-amber-600">
+            그룹이 없어 로드맵 담기 기능은 비활성화됩니다.
+          </p>
+        ) : null}
+        {isLoading ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
+            검색 결과를 불러오는 중...
+          </div>
+        ) : null}
+        {!isLoading && problems.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
+            검색 결과가 없습니다.
+          </div>
+        ) : null}
+
+        {!isLoading &&
+          problems.map((problem) => {
+            const roadmapIds = problemRoadmapMap[String(problem.bojId)] ?? [];
+            return (
+              <article
+                key={problem.id}
+                className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-gray-200"
+              >
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {problem.bojId}. {problem.title}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="border border-blue-200 bg-[#F2F7FF] text-[#0F46D8]">
+                      {tierLabel(problem.level)}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {problem.tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      className="border border-gray-200 bg-white text-gray-600"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                  >
+                    <a
+                      href={`https://www.acmicpc.net/problem/${problem.bojId}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      문제 보기
+                    </a>
+                  </Button>
+                  <Button
+                    variant={selectedProblemIds.includes(problem.id) ? "default" : "outline"}
+                    className={
+                      selectedProblemIds.includes(problem.id)
+                        ? "rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
+                        : "rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                    }
+                    onClick={() => handleToggleProblem(problem)}
+                    disabled={
+                      !groupId ||
+                      !selectedRoadmapId ||
+                      isInSelectedRoadmap(problem) ||
+                      !roadmaps.find((roadmap) => String(roadmap.id) === selectedRoadmapId)?.isOwner
+                    }
+                  >
+                    {isInSelectedRoadmap(problem)
+                      ? "이미 선택 로드맵에 담김"
+                      : selectedProblemIds.includes(problem.id)
+                        ? "선택됨"
+                        : "선택"}
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+      </section>
+
+      {/* 페이지네이션 */}
+      {currentPage > 1 || !isLastPage ? (
+        <Pagination className="mt-2">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage > 1) setCurrentPage((p) => p - 1);
+                }}
+                className={
+                  currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                }
+              />
+            </PaginationItem>
+            {Array.from(
+              {
+                length: Math.min(
+                  5,
+                  isLastPage ? currentPage : currentPage + 2,
+                ),
+              },
+              (_, i) => {
+                const start = Math.max(1, currentPage - 2);
+                const page = start + i;
+                if (isLastPage && page > currentPage) return null;
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === currentPage}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(page);
+                      }}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              },
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!isLastPage) setCurrentPage((p) => p + 1);
+                }}
+                className={isLastPage ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      ) : null}
     </div>
   );
 }

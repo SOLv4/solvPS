@@ -140,7 +140,7 @@ export default function RoadmapDetailPage() {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [roadmapId]);
 
   useEffect(() => {
@@ -326,31 +326,32 @@ export default function RoadmapDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center">
-        <p className="animate-pulse text-sm text-gray-400">불러오는 중...</p>
+      <div className="flex items-center justify-center py-20">
+        <p className="animate-pulse text-sm text-gray-400 font-medium">데이터를 불러오는 중...</p>
       </div>
     );
   }
 
   if (error || (!loading && !roadmap)) {
     return (
-      <div className="min-h-screen bg-[#F7F8FA]">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
-            <p className="text-base font-semibold text-slate-800">로드맵을 찾을 수 없습니다.</p>
-            <p className="mt-1 text-sm text-slate-500">{error || "목록으로 돌아가서 다시 선택해 주세요."}</p>
-            <Button asChild variant="outline" className="mt-4 rounded-xl border-blue-200 text-[#0F46D8]">
-              <Link href="/roadmaps">목록으로</Link>
-            </Button>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-6 py-10">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400">
+            <X size={24} />
           </div>
+          <p className="text-lg font-bold text-slate-900">로드맵을 찾을 수 없습니다</p>
+          <p className="mt-2 text-sm text-slate-500">{error || "목록으로 돌아가서 다시 선택해 주세요."}</p>
+          <Button asChild variant="outline" className="mt-8 rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]">
+            <Link href="/roadmaps">목록으로 돌아가기</Link>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA]">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-6">
+    <div>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-6 py-10">
 
         {/* 헤더 */}
         <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">

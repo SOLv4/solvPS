@@ -164,8 +164,8 @@ export default function ProblemComparePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA]">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-6">
+    <div>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6 md:p-10">
         <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

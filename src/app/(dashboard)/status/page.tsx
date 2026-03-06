@@ -16,9 +16,9 @@ const hexToRgba = (hex: string, alpha: number) => {
   const normalized =
     sanitized.length === 3
       ? sanitized
-          .split("")
-          .map((char) => char + char)
-          .join("")
+        .split("")
+        .map((char) => char + char)
+        .join("")
       : sanitized;
 
   const r = Number.parseInt(normalized.slice(0, 2), 16);
@@ -75,7 +75,7 @@ export default async function StatusPage() {
   ] as const;
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-6xl px-6 py-10 space-y-8">
       <section className="relative overflow-hidden rounded-3xl border px-6 py-6 sm:px-8 sm:py-8" style={boardStyle}>
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full blur-3xl" style={{ backgroundColor: hexToRgba(tierColor, 0.24) }} />
         <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full blur-3xl" style={{ backgroundColor: hexToRgba(tierColor, 0.16) }} />
