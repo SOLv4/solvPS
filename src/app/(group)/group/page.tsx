@@ -35,8 +35,11 @@ export default function GroupPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-sm text-slate-500 animate-pulse">기존 그룹 정보를 확인하는 중...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F7FA]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#0F46D8] border-t-transparent" />
+          <p className="text-sm text-gray-400">기존 그룹 정보를 확인하는 중...</p>
+        </div>
       </div>
     );
   }
@@ -90,68 +93,77 @@ export default function GroupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] px-6 py-8">
-      <div className="mx-auto max-w-2xl space-y-5">
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-            <Users size={20} className="text-[#0F46D8]" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F5F7FA] p-6">
+      <div className="w-full max-w-2xl">
+        {/* 헤더 */}
+        <div className="mb-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0F46D8] shadow-lg shadow-blue-600/30">
+            <Users size={26} className="text-white" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">그룹 허브</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            학습 팀을 만들거나 초대 코드로 합류하세요.
+          <h1 className="text-2xl font-bold text-gray-900">그룹 시작하기</h1>
+          <p className="mt-1.5 text-sm text-gray-500">
+            새 그룹을 만들거나 초대 코드로 기존 그룹에 참여하세요.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <PlusCircle size={15} className="text-[#0F46D8]" />
-              <h2 className="text-sm font-semibold text-gray-800">새 그룹 생성</h2>
+          {/* 생성 카드 */}
+          <div className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF4FF]">
+                <PlusCircle size={16} className="text-[#0F46D8]" />
+              </div>
+              <h2 className="text-sm font-semibold text-gray-900">그룹 만들기</h2>
             </div>
-            <p className="mb-4 text-xs text-gray-400">스터디 목적에 맞는 그룹을 만들고 초대 코드를 발급합니다.</p>
 
-            <label className="mb-1 block text-xs font-medium text-gray-500">그룹 이름</label>
-            <input
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0F46D8] focus:ring-2 focus:ring-[#0F46D8]/10"
-              placeholder="예: 알고리즘 문제풀이 스터디"
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-500">그룹 이름</label>
+              <input
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-[#0F46D8]/40 focus:bg-white focus:ring-2 focus:ring-[#0F46D8]/10"
+                placeholder="예) 알고리즘 스터디"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void handleCreate()}
+              />
+            </div>
 
-            {createError && <p className="mt-2 text-xs text-red-500">{createError}</p>}
+            {createError && <p className="text-xs text-red-500">{createError}</p>}
 
             <button
-              onClick={handleCreate}
+              onClick={() => void handleCreate()}
               disabled={createLoading || !createName.trim()}
-              className="mt-4 w-full rounded-lg bg-[#0F46D8] py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A37B0] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-auto w-full rounded-xl bg-[#0F46D8] py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all hover:bg-[#0A3DC0] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {createLoading ? "생성 중..." : "그룹 만들기"}
             </button>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <LogIn size={15} className="text-[#0F46D8]" />
-              <h2 className="text-sm font-semibold text-gray-800">초대 코드로 참여</h2>
+          {/* 가입 카드 */}
+          <div className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF4FF]">
+                <LogIn size={16} className="text-[#0F46D8]" />
+              </div>
+              <h2 className="text-sm font-semibold text-gray-900">초대 코드로 가입</h2>
             </div>
-            <p className="mb-4 text-xs text-gray-400">팀장이 공유한 8자리 초대 코드로 바로 합류합니다.</p>
 
-            <label className="mb-1 block text-xs font-medium text-gray-500">초대 코드</label>
-            <input
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 font-mono text-sm tracking-widest uppercase outline-none transition focus:border-[#0F46D8] focus:ring-2 focus:ring-[#0F46D8]/10"
-              placeholder="예: A1B2C3D4"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-500">초대 코드</label>
+              <input
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-widest text-gray-900 outline-none transition-all placeholder:font-normal placeholder:tracking-normal placeholder:text-gray-400 focus:border-[#0F46D8]/40 focus:bg-white focus:ring-2 focus:ring-[#0F46D8]/10"
+                placeholder="예) A1B2C3D4"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void handleJoin()}
+              />
+            </div>
 
-            {joinError && <p className="mt-2 text-xs text-red-500">{joinError}</p>}
+            {joinError && <p className="text-xs text-red-500">{joinError}</p>}
 
             <button
-              onClick={handleJoin}
+              onClick={() => void handleJoin()}
               disabled={joinLoading || !joinCode.trim()}
-              className="mt-4 w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-[#0F46D8] transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-auto w-full rounded-xl border border-[#0F46D8]/20 bg-[#EEF4FF] py-2.5 text-sm font-semibold text-[#0F46D8] transition-all hover:bg-[#DDE9FF] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {joinLoading ? "가입 중..." : "그룹 가입"}
             </button>

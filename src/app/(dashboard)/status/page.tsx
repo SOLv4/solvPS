@@ -82,12 +82,12 @@ export default async function StatusPage() {
 
         <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
           <div className="space-y-5">
-            <Badge className="rounded-full border bg-white/70 px-3 py-1 text-[11px] font-semibold tracking-wide" style={badgeStyle}>
+            <Badge className="rounded-full border bg-white/70 px-3 py-1 text-xs font-semibold tracking-wide" style={badgeStyle}>
               STATUS INTEL BOARD
             </Badge>
 
             <div className="space-y-2">
-              <p className="text-xs font-medium text-slate-500">@{stats.user.handle}</p>
+              <p className="text-sm font-medium text-slate-500">@{stats.user.handle}</p>
               <div className="flex flex-wrap items-end gap-3">
                 <h1 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: tierColor }}>
                   {stats.user.tierName}
@@ -109,7 +109,7 @@ export default async function StatusPage() {
                 <div key={item.label} className="rounded-2xl border bg-white/80 px-3.5 py-3 backdrop-blur" style={statCardStyle}>
                   <div className="mb-2 flex items-center gap-2">
                     <item.icon size={14} style={{ color: tierColor }} />
-                    <p className="text-xs font-medium text-slate-500">{item.label}</p>
+                    <p className="text-sm font-medium text-slate-500">{item.label}</p>
                   </div>
                   <p className="text-xl font-bold" style={{ color: tierColor }}>{item.value}</p>
                 </div>
@@ -123,10 +123,10 @@ export default async function StatusPage() {
                 <Sparkles size={14} style={{ color: tierColor }} />
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">강점</p>
               </div>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-base font-semibold text-slate-800">
                 {strongestTag ? `${strongestTag.name} (${strongestTag.solved}문제)` : "분석 데이터 없음"}
               </p>
-              <p className="mt-1 text-xs text-slate-500">현재 가장 많이 푼 대표 알고리즘 태그</p>
+              <p className="mt-1 text-sm text-slate-500">현재 가장 많이 푼 대표 알고리즘 태그</p>
             </div>
 
             <div className="rounded-2xl border bg-white/85 p-4" style={statCardStyle}>
@@ -134,8 +134,8 @@ export default async function StatusPage() {
                 <TriangleAlert size={14} style={{ color: tierColor }} />
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">보완 포인트</p>
               </div>
-              <p className="text-sm font-semibold text-slate-800">{weakestTag ? weakestTag.name : "분석 데이터 없음"}</p>
-              <p className="mt-1 text-xs text-slate-500">풀이 수가 적어 우선 보완이 필요한 태그</p>
+              <p className="text-base font-semibold text-slate-800">{weakestTag ? weakestTag.name : "분석 데이터 없음"}</p>
+              <p className="mt-1 text-sm text-slate-500">풀이 수가 적어 우선 보완이 필요한 태그</p>
             </div>
 
             <div className="rounded-2xl border bg-white/85 p-4" style={statCardStyle}>
@@ -143,12 +143,12 @@ export default async function StatusPage() {
                 <Target size={14} style={{ color: tierColor }} />
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">현재 페이스</p>
               </div>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-base font-semibold text-slate-800">
                 {strongestBand
                   ? `${strongestBand.label} 구간 ${strongestBand.solved.toLocaleString()}문제`
                   : "난이도 분석 데이터 없음"}
               </p>
-              <p className="mt-1 text-xs text-slate-500">전체 난이도 커버리지 {coverage}%</p>
+              <p className="mt-1 text-sm text-slate-500">전체 난이도 커버리지 {coverage}%</p>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default async function StatusPage() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle className="text-base font-semibold text-slate-800">태그 분포 레이더</CardTitle>
-              <CardDescription className="text-xs">풀이 수 상위 8개 알고리즘의 집중도</CardDescription>
+              <CardDescription className="text-sm">풀이 수 상위 8개 알고리즘의 집중도</CardDescription>
             </div>
             {strongestTag && (
               <Badge className="border border-blue-200 bg-[#F3F7FF] text-[#1248DA]">
@@ -177,7 +177,7 @@ export default async function StatusPage() {
         <Card className="xl:col-span-7 border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-base font-semibold text-slate-800">난이도 분포 인사이트</CardTitle>
-            <CardDescription className="text-xs">구간별 풀이량과 해결률을 동시에 추적</CardDescription>
+            <CardDescription className="text-sm">구간별 풀이량과 해결률을 동시에 추적</CardDescription>
           </CardHeader>
           <CardContent>
             <LevelHistogram data={stats.levelHistogram} />
@@ -187,7 +187,7 @@ export default async function StatusPage() {
         <Card className="xl:col-span-5 border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-base font-semibold text-slate-800">CLASS 로드맵</CardTitle>
-            <CardDescription className="text-xs">전체 진행률과 에센셜 달성률 동시 비교</CardDescription>
+            <CardDescription className="text-sm">전체 진행률과 에센셜 달성률 동시 비교</CardDescription>
           </CardHeader>
           <CardContent>
             <ClassProgress data={stats.classProgress} nextClassInfo={stats.nextClassInfo} />
@@ -198,7 +198,7 @@ export default async function StatusPage() {
       <Card className="border-gray-100 bg-white shadow-sm">
         <CardHeader className="pb-1">
           <CardTitle className="text-base font-semibold text-slate-800">풀이 스타일 프로파일</CardTitle>
-          <CardDescription className="text-xs">상위 100문제 난이도/태그 분포 기반 진단</CardDescription>
+          <CardDescription className="text-sm">상위 100문제 난이도/태그 분포 기반 진단</CardDescription>
         </CardHeader>
         <CardContent>
           <StyleCard data={stats.styleData} />

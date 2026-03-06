@@ -279,57 +279,45 @@ export default function ProblemsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA]">
+    <div className="min-h-screen bg-[#F5F7FA]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="space-y-5">
             <div>
-              <p className="text-xs font-medium text-gray-400">문제 검색</p>
-              <h1 className="mt-1 text-2xl font-bold text-gray-900">
-                문제 검색
-              </h1>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#0F46D8]/60">문제 검색</p>
+              <h1 className="text-2xl font-bold text-gray-900">문제 검색</h1>
               <p className="mt-1 text-sm text-gray-400">
                 난이도/태그 기준으로 문제를 필터링하고 바로 로드맵에 편입하세요.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">검색 결과</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Search size={16} />
-                  {summary.total}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">로드맵 편입</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Layers3 size={16} />
-                  {summary.inRoadmapCount}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">평균 난이도</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Target size={16} />
-                  {summary.avgLevel || "-"}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">주요 태그</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Sparkles size={16} />
-                  <span className="truncate">{summary.topTag}</span>
-                </p>
-              </div>
+              {[
+                { icon: Search, label: "검색 결과", value: summary.total },
+                { icon: Layers3, label: "로드맵 편입", value: summary.inRoadmapCount },
+                { icon: Target, label: "평균 난이도", value: summary.avgLevel || "-" },
+                { icon: Sparkles, label: "주요 태그", value: summary.topTag },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-[#F9FAFB] p-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EEF4FF]">
+                    <Icon size={14} className="text-[#0F46D8]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-medium text-gray-400">{label}</p>
+                    <p className="truncate text-base font-bold text-gray-900">{value}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Filter size={17} className="text-[#0F46D8]" />
-            <h2 className="text-base font-semibold text-slate-800">필터</h2>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EEF4FF]">
+              <Filter size={14} className="text-[#0F46D8]" />
+            </div>
+            <h2 className="text-sm font-semibold text-gray-900">필터</h2>
           </div>
           <div className="grid gap-3 lg:grid-cols-[1.5fr_0.5fr_0.7fr]">
             <div className="relative">
@@ -388,7 +376,7 @@ export default function ProblemsPage() {
             <Button
               onClick={() => void handleAddSelectedToRoadmap()}
               disabled={!groupId || !selectedRoadmapId || selectedProblemIds.length === 0}
-              className="rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
+              className="rounded-xl bg-[#0F46D8] text-white shadow-md shadow-blue-600/20 hover:bg-[#0A3DC0]"
             >
               선택 문제 담기 ({selectedProblemIds.length})
             </Button>
@@ -424,37 +412,38 @@ export default function ProblemsPage() {
               return (
                 <article
                   key={problem.id}
-                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-gray-200"
+                  className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-[#0F46D8]/25 hover:shadow-md"
                 >
                   <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {problem.bojId}. {problem.title}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-bold text-gray-900">
+                        <span className="mr-1.5 font-black text-[#0F46D8]">#{problem.bojId}</span>
+                        {problem.title}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="border border-blue-200 bg-[#F2F7FF] text-[#0F46D8]">
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge className="rounded-lg border border-blue-100 bg-[#EEF4FF] px-2 text-[10px] font-semibold text-[#0F46D8]">
                         {tierLabel(problem.level)}
                       </Badge>
                       <Badge
                         className={
                           inRoadmap
-                            ? "border border-blue-200 bg-[#0F46D8] text-white"
-                            : "border border-slate-200 bg-white text-slate-600"
+                            ? "rounded-lg border border-blue-200 bg-[#0F46D8] px-2 text-[10px] font-semibold text-white"
+                            : "rounded-lg border border-gray-200 bg-gray-50 px-2 text-[10px] font-semibold text-gray-400"
                         }
                       >
                         {inRoadmap
-                          ? `로드맵 편입 (${roadmapIds.length})`
+                          ? `편입 (${roadmapIds.length})`
                           : "미편입"}
                       </Badge>
                     </div>
                   </div>
 
-                  <div className="mb-3 flex flex-wrap gap-1.5">
+                  <div className="mb-4 flex flex-wrap gap-1.5">
                     {problem.tags.map((tag) => (
                       <Badge
                         key={tag}
-                        className="border border-gray-200 bg-white text-gray-600"
+                        className="rounded-md border border-gray-100 bg-[#F9FAFB] px-2 text-xs font-medium text-gray-500"
                       >
                         {tag}
                       </Badge>
@@ -464,8 +453,9 @@ export default function ProblemsPage() {
                   <div className="flex justify-end gap-2">
                     <Button
                       asChild
+                      size="sm"
                       variant="outline"
-                      className="rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                      className="rounded-lg border-gray-200 text-[#0F46D8] hover:border-[#0F46D8]/30 hover:bg-[#EEF4FF]"
                     >
                       <a
                         href={`https://www.acmicpc.net/problem/${problem.bojId}`}
@@ -476,19 +466,20 @@ export default function ProblemsPage() {
                       </a>
                     </Button>
                     <Button
+                      size="sm"
                       variant={selectedProblemIds.includes(problem.id) ? "default" : "outline"}
                       className={
                         selectedProblemIds.includes(problem.id)
-                          ? "rounded-xl bg-[#0F46D8] text-white hover:bg-[#0A37B0]"
-                          : "rounded-xl border-blue-200 text-[#0F46D8] hover:bg-[#F4F8FF]"
+                          ? "rounded-lg bg-[#0F46D8] text-white shadow-sm shadow-blue-600/20 hover:bg-[#0A3DC0]"
+                          : "rounded-lg border-gray-200 text-gray-600 hover:border-[#0F46D8]/30 hover:bg-[#EEF4FF] hover:text-[#0F46D8]"
                       }
                       onClick={() => handleToggleProblem(problem)}
                       disabled={!groupId || !selectedRoadmapId || isInSelectedRoadmap(problem)}
                     >
                       {isInSelectedRoadmap(problem)
-                        ? "이미 선택 로드맵에 담김"
+                        ? "이미 담김"
                         : selectedProblemIds.includes(problem.id)
-                          ? "선택됨"
+                          ? "선택됨 ✓"
                           : "선택"}
                     </Button>
                   </div>

@@ -23,11 +23,13 @@ interface Props {
 export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) {
   if (roadmaps.length === 0) {
     return (
-      <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <Map size={14} className="text-[#0F46D8]" />
-            <h2 className="text-sm font-semibold text-gray-800">로드맵</h2>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EEF4FF]">
+              <Map size={13} className="text-[#0F46D8]" />
+            </div>
+            <h2 className="text-sm font-semibold text-gray-900">로드맵</h2>
           </div>
         </div>
         <div className="p-5">
@@ -40,13 +42,18 @@ export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) 
   }
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+    <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <Map size={14} className="text-[#0F46D8]" />
-          <h2 className="text-sm font-semibold text-gray-800">로드맵</h2>
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EEF4FF]">
+            <Map size={13} className="text-[#0F46D8]" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">로드맵</h2>
+            <p className="text-xs text-gray-400">학습 트랙 및 단계별 진행 현황</p>
+          </div>
         </div>
-        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
+        <span className="rounded-full border border-gray-200 bg-[#F9FAFB] px-3 py-1 text-xs font-bold text-gray-500">
           {roadmaps.length}개 트랙
         </span>
       </div>
@@ -64,21 +71,21 @@ export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) 
               {/* 트랙 헤더 */}
               <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                 <div>
-                  <p className="text-[10px] font-bold tracking-widest text-[#0F46D8] uppercase">
+                  <p className="text-xs font-bold tracking-widest text-[#0F46D8] uppercase">
                     TRACK {index + 1}
                   </p>
-                  <h3 className="mt-0.5 text-sm font-bold text-gray-800">{roadmap.title}</h3>
+                  <h3 className="mt-0.5 text-base font-bold text-gray-800">{roadmap.title}</h3>
                   {roadmap.description && (
                     <p className="mt-0.5 text-xs text-gray-400">{roadmap.description}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-500">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-500">
                     <BookOpenCheck size={11} />
                     {stepCount}단계
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${
                       completionPct === 100
                         ? "border-green-300 bg-green-50 text-green-700"
                         : "border-blue-200 bg-[#EEF4FF] text-[#0F46D8]"
@@ -122,15 +129,15 @@ export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) 
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium ${done ? "text-slate-400 line-through" : "text-gray-700"}`}>
+                      <p className={`text-sm font-medium ${done ? "text-slate-400 line-through" : "text-gray-700"}`}>
                         {step.title}
                       </p>
                       {step.description && (
-                        <p className="mt-0.5 text-[11px] text-gray-400">{step.description}</p>
+                        <p className="mt-0.5 text-xs text-gray-400">{step.description}</p>
                       )}
                     </div>
                     {stepIndex === 0 && !done && (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[#EEF4FF] text-[#0F46D8]">
+                      <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-semibold bg-[#EEF4FF] text-[#0F46D8]">
                         <Flag size={9} />
                         START
                       </span>

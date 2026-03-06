@@ -106,7 +106,7 @@ export default function WeeklyStreakBoard({
             <motion.div
               layout
               key={m.userId}
-              className={`relative overflow-hidden rounded-2xl border p-4 shadow-sm ${style.card} ${isFirst ? "sm:-mt-3" : "sm:mt-3"}`}
+              className={`relative rounded-2xl border px-6 pb-5 pt-8 shadow-sm ${style.card} ${isFirst ? "sm:-mt-3" : "sm:mt-3"}`}
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{
@@ -135,28 +135,28 @@ export default function WeeklyStreakBoard({
                 </span>
               </motion.div>
 
-              <div className="mt-6 flex flex-col items-center text-center">
-                <p className="max-w-full truncate text-base font-extrabold text-slate-800">{m.name}</p>
+              <div className="mt-4 flex flex-col items-center text-center">
+                <p className="max-w-full truncate text-sm font-extrabold text-slate-800">{m.name}</p>
                 <motion.p
-                  className="mt-1 text-3xl font-black text-[#0F46D8]"
+                  className="mt-1 text-2xl font-black text-[#0F46D8]"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: (podiumDelayMap[rank] ?? 0.1) + 0.18, duration: 0.35 }}
                 >
                   {scoreText(m.weeklyScore)}
                 </motion.p>
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-slate-500">
                   {dayNames.map((d, i) => (
-                    <span key={`${m.userId}-day-${labels[i] ?? d}`} className="w-6 text-center">
+                    <span key={`${m.userId}-day-${labels[i] ?? d}`} className="w-5 text-center">
                       {d}
                     </span>
                   ))}
                 </div>
-                <div className="mt-1 flex items-center gap-1.5">
+                <div className="mt-1 flex items-center gap-1">
                   {m.dailySolved.map((v, i) => (
                     <motion.div
                       key={`${m.userId}-podium-${labels[i] ?? i}`}
-                      className={`h-6 w-6 rounded-md border ${cellClass(v)}`}
+                      className={`h-5 w-5 rounded border ${cellClass(v)}`}
                       title={`${dayNames[i]} · ${v}문제`}
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0, scale: v > 0 ? [1, 1.06, 1] : 1 }}
@@ -176,7 +176,7 @@ export default function WeeklyStreakBoard({
 
       <motion.div
         layout
-        className="rounded-2xl border border-gray-100 bg-white/80"
+        className="overflow-x-auto rounded-2xl border border-gray-100 bg-white/80"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.22, duration: 0.35 }}
