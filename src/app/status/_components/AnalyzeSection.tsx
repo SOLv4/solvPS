@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type AnalyzeEvent =
   | { type: "tool_call"; tool: string; input: Record<string, string> }
-  | { type: "tool_result"; tool: string }
+  | { type: "tool_result"; tool: string; summary?: string }
   | { type: "result"; text: string }
   | { type: "error"; message: string };
 
@@ -20,29 +20,67 @@ export default function AnalyzeSection({ handle }: { handle: string }) {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<AnalyzeEvent[]>([]);
   const [result, setResult] = useState("");
+  const [error, setError] = useState("");
 
   const runAnalyze = async () => {
     setLoading(true);
     setLogs([]);
     setResult("");
+    setError("");
     try {
       const res = await fetch("/api/status/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle }),
       });
-      const reader = res.body!.getReader();
+      if (!res.ok || !res.body) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || `분석 요청 실패 (${res.status})`);
+      }
+
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
+
+      const processBlock = (block: string) => {
+        const dataLine = block
+          .split("\n")
+          .find((line) => line.startsWith("data: "));
+        if (!dataLine) return;
+        try {
+          const event: AnalyzeEvent = JSON.parse(dataLine.slice(6));
+          if (event.type === "result") {
+            setResult(event.text);
+            return;
+          }
+          if (event.type === "error") {
+            setError(event.message);
+            return;
+          }
+          setLogs((prev) => [...prev, event]);
+        } catch {
+          setError("분석 응답 파싱에 실패했습니다.");
+        }
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        for (const line of decoder.decode(value).split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const event: AnalyzeEvent = JSON.parse(line.slice(6));
-          if (event.type === "result") setResult(event.text);
-          else setLogs((prev) => [...prev, event]);
+
+        buffer += decoder.decode(value, { stream: true });
+        let splitIndex = buffer.indexOf("\n\n");
+        while (splitIndex !== -1) {
+          const block = buffer.slice(0, splitIndex);
+          buffer = buffer.slice(splitIndex + 2);
+          processBlock(block);
+          splitIndex = buffer.indexOf("\n\n");
         }
       }
+
+      buffer += decoder.decode();
+      if (buffer.trim()) processBlock(buffer);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "분석 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -80,7 +118,9 @@ export default function AnalyzeSection({ handle }: { handle: string }) {
                 {log.type === "tool_result" && (
                   <>
                     <span className="text-[#0046FE]">✓</span>
-                    <span className="text-gray-400">완료</span>
+                    <span className="text-gray-400">
+                      완료{log.summary ? ` · ${log.summary}` : ""}
+                    </span>
                   </>
                 )}
               </div>
@@ -91,6 +131,15 @@ export default function AnalyzeSection({ handle }: { handle: string }) {
                 <span>리포트 작성 중...</span>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {error && (
+        <Card className="border-red-100 bg-red-50/50 shadow-sm">
+          <CardContent className="p-4 flex items-start gap-2">
+            <span className="text-red-400 mt-0.5">⚠</span>
+            <p className="text-sm text-red-600">{error}</p>
           </CardContent>
         </Card>
       )}
