@@ -6,6 +6,8 @@ LOG_FILE="${LOG_DIR}/deploy.log"
 ERR_LOG_FILE="${LOG_DIR}/deploy_err.log"
 
 mkdir -p "${LOG_DIR}"
+touch "${LOG_FILE}" "${ERR_LOG_FILE}"
+: > "${ERR_LOG_FILE}"
 
 log() {
   echo "$1" >> "${LOG_FILE}" 2>/dev/null || true
