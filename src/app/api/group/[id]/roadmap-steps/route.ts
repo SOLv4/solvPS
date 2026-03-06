@@ -81,3 +81,65 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   return NextResponse.json(step, { status: 201 });
 }
+
+// DELETE /api/group/[id]/roadmap-steps
+// Body: { stepId }
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const { id } = await params;
+  const teamId = Number(id);
+  if (isNaN(teamId)) {
+    return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
+  }
+
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sessionUserId = Number(session.user.id);
+  if (Number.isNaN(sessionUserId)) {
+    return NextResponse.json({ error: "Invalid user session" }, { status: 401 });
+  }
+
+  const isMember = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(and(eq(teamMembers.team_id, teamId), eq(teamMembers.user_id, sessionUserId)))
+    .then((r) => r.length > 0);
+  if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { stepId } = (await req.json()) as { stepId?: number };
+  if (!stepId) {
+    return NextResponse.json({ error: "stepId is required" }, { status: 400 });
+  }
+
+  const [step] = await db
+    .select({ id: roadmapSteps.id, roadmapId: roadmapSteps.roadmap_id })
+    .from(roadmapSteps)
+    .where(eq(roadmapSteps.id, stepId))
+    .limit(1);
+  if (!step) return NextResponse.json({ error: "Step not found" }, { status: 404 });
+
+  const [owner] = await db
+    .select({ createdBy: roadmaps.created_by })
+    .from(roadmaps)
+    .where(eq(roadmaps.id, step.roadmapId))
+    .limit(1);
+  if (!owner) return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
+  if (owner.createdBy !== sessionUserId) {
+    return NextResponse.json(
+      { error: "로드맵 작성자만 스텝을 삭제할 수 있습니다." },
+      { status: 403 },
+    );
+  }
+
+  const [roadmapLink] = await db
+    .select({ roadmapId: teamRoadmaps.roadmap_id })
+    .from(teamRoadmaps)
+    .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, step.roadmapId)))
+    .limit(1);
+  if (!roadmapLink) {
+    return NextResponse.json({ error: "Roadmap not found in team" }, { status: 404 });
+  }
+
+  await db.delete(roadmapSteps).where(eq(roadmapSteps.id, stepId));
+
+  return NextResponse.json({ ok: true });
+}
