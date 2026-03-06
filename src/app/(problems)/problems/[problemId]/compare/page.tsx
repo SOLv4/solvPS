@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, ChevronLeft, GitCompare, User } from "lucide-react";
+import { ArrowLeftRight, ChevronLeft, GitCompare, Loader2, Sparkles, User } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
@@ -21,6 +21,25 @@ type SubmissionItem = {
   result: string;
   submittedAtRaw: string | null;
   capturedAt: string;
+};
+
+type CodeReviewResult = {
+  summary: string;
+  comparisonPoints: string[];
+  leftReview: {
+    strengths: string[];
+    improvements: string[];
+  };
+  rightReview: {
+    strengths: string[];
+    improvements: string[];
+  };
+  betterChoice: {
+    handle: string | null;
+    reason: string;
+  };
+  mergedSuggestion: string;
+  reviewFocus: string[];
 };
 
 function toHighlightLang(language: string): string {
@@ -41,10 +60,6 @@ function toHighlightLang(language: string): string {
   return "text";
 }
 
-function splitLines(text: string) {
-  return text.replace(/\r\n/g, "\n").split("\n");
-}
-
 export default function ProblemComparePage() {
   const params = useParams<{ problemId: string }>();
   const searchParams = useSearchParams();
@@ -56,6 +71,9 @@ export default function ProblemComparePage() {
   const [error, setError] = useState("");
   const [leftHandle, setLeftHandle] = useState("");
   const [rightHandle, setRightHandle] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewResult, setReviewResult] = useState<CodeReviewResult | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -101,9 +119,49 @@ export default function ProblemComparePage() {
   const left = leftHandle ? latestByHandle.get(leftHandle) ?? null : null;
   const right = rightHandle ? latestByHandle.get(rightHandle) ?? null : null;
 
-  const leftLines = splitLines(left?.sourceCode || "");
-  const rightLines = splitLines(right?.sourceCode || "");
-  const maxLines = Math.max(leftLines.length, rightLines.length);
+  useEffect(() => {
+    setReviewError("");
+    setReviewResult(null);
+  }, [leftHandle, rightHandle, teamId, problemId]);
+
+  const canReview =
+    Boolean(left?.id) &&
+    Boolean(right?.id) &&
+    left?.id !== right?.id &&
+    left?.memberHandle !== right?.memberHandle;
+
+  const runCodeReview = async () => {
+    if (!left || !right) return;
+    setReviewLoading(true);
+    setReviewError("");
+    setReviewResult(null);
+
+    try {
+      const res = await fetch("/api/problems/compare/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId: Number(teamId),
+          problemId: Number(problemId),
+          leftSubmissionPk: left.id,
+          rightSubmissionPk: right.id,
+        }),
+      });
+
+      const raw = await res.text();
+      const json = raw ? JSON.parse(raw) : {};
+      if (!res.ok) {
+        throw new Error(json.error || "Claude 코드 비교 분석에 실패했습니다.");
+      }
+      setReviewResult(json.result as CodeReviewResult);
+    } catch (e) {
+      setReviewError(
+        e instanceof Error ? e.message : "Claude 코드 비교 분석 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setReviewLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F8FA]">
@@ -203,31 +261,118 @@ export default function ProblemComparePage() {
           </section>
         )}
 
-        {!loading && !error && left && right && (
-          <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">라인 단위 빠른 비교</h3>
+        {!loading && !error && handles.length > 0 && (
+          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <button
+              onClick={() => void runCodeReview()}
+              disabled={!canReview || reviewLoading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#0F46D8]/25 bg-[#F4F8FF] px-4 py-3 text-sm font-semibold text-[#0F46D8] transition-colors hover:bg-[#EAF2FF] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reviewLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  AI 코드 분석 중...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} />
+                  AI 코드 비교&분석
+                </>
+              )}
+            </button>
+            {!canReview && handles.length > 1 && (
+              <p className="mt-2 text-center text-[11px] text-amber-600">
+                서로 다른 두 멤버를 선택해야 분석할 수 있습니다.
+              </p>
+            )}
+            {reviewError && (
+              <p className="mt-2 text-center text-xs text-red-500">{reviewError}</p>
+            )}
+          </section>
+        )}
+
+        {reviewResult && (
+          <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={16} className="text-[#0F46D8]" />
+              <h3 className="text-sm font-semibold text-slate-800">AI 코드 비교 결과</h3>
             </div>
-            <div className="max-h-[440px] overflow-auto">
-              <table className="w-full border-collapse text-xs font-mono">
-                <tbody>
-                  {Array.from({ length: maxLines }).map((_, i) => {
-                    const l = leftLines[i] ?? "";
-                    const r = rightLines[i] ?? "";
-                    const same = l === r;
-                    return (
-                      <tr key={i} className={same ? "bg-white" : "bg-amber-50"}>
-                        <td className="w-10 border-r border-gray-100 px-2 py-1.5 text-right text-gray-300 select-none">{i + 1}</td>
-                        <td className="w-1/2 border-r border-gray-100 px-3 py-1.5 text-slate-700 whitespace-pre">{l || " "}</td>
-                        <td className="w-1/2 px-3 py-1.5 text-slate-700 whitespace-pre">{r || " "}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <p className="mb-4 rounded-xl border border-blue-100 bg-[#F8FBFF] px-3 py-2 text-sm text-slate-700">
+              {reviewResult.summary}
+            </p>
+
+            <div className="mb-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-slate-100 p-3">
+                <p className="mb-2 text-xs font-semibold text-slate-700">{left?.memberHandle} 리뷰</p>
+                <p className="mb-1 text-[11px] font-semibold text-blue-700">장점</p>
+                <ul className="mb-3 space-y-1 text-xs text-slate-600">
+                  {reviewResult.leftReview.strengths.map((line, index) => (
+                    <li key={`left-strength-${index}`}>• {line}</li>
+                  ))}
+                </ul>
+                <p className="mb-1 text-[11px] font-semibold text-amber-700">개선점</p>
+                <ul className="space-y-1 text-xs text-slate-600">
+                  {reviewResult.leftReview.improvements.map((line, index) => (
+                    <li key={`left-improve-${index}`}>• {line}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-xl border border-slate-100 p-3">
+                <p className="mb-2 text-xs font-semibold text-slate-700">{right?.memberHandle} 리뷰</p>
+                <p className="mb-1 text-[11px] font-semibold text-blue-700">장점</p>
+                <ul className="mb-3 space-y-1 text-xs text-slate-600">
+                  {reviewResult.rightReview.strengths.map((line, index) => (
+                    <li key={`right-strength-${index}`}>• {line}</li>
+                  ))}
+                </ul>
+                <p className="mb-1 text-[11px] font-semibold text-amber-700">개선점</p>
+                <ul className="space-y-1 text-xs text-slate-600">
+                  {reviewResult.rightReview.improvements.map((line, index) => (
+                    <li key={`right-improve-${index}`}>• {line}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-slate-100 p-3">
+              <p className="mb-2 text-xs font-semibold text-slate-700">핵심 비교 포인트</p>
+              <ul className="space-y-1 text-xs text-slate-600">
+                {reviewResult.comparisonPoints.map((line, index) => (
+                  <li key={`point-${index}`}>• {line}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-slate-100 p-3">
+              <p className="mb-1 text-xs font-semibold text-slate-700">현재 기준 더 나은 선택</p>
+              <p className="text-sm font-semibold text-[#0F46D8]">
+                {reviewResult.betterChoice.handle ?? "동등"}
+              </p>
+              <p className="mt-1 text-xs text-slate-600">{reviewResult.betterChoice.reason}</p>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-slate-100 p-3">
+              <p className="mb-2 text-xs font-semibold text-slate-700">리뷰 기준</p>
+              <div className="flex flex-wrap gap-1.5">
+                {reviewResult.reviewFocus.map((focus, index) => (
+                  <span
+                    key={`focus-${index}`}
+                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600"
+                  >
+                    {focus}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-blue-100 bg-[#F8FBFF] p-3">
+              <p className="mb-1 text-xs font-semibold text-slate-700">통합 개선 가이드</p>
+              <p className="text-xs leading-relaxed text-slate-700">{reviewResult.mergedSuggestion}</p>
             </div>
           </section>
         )}
+
       </div>
     </div>
   );

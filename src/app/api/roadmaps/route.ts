@@ -14,8 +14,67 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
+    const scope = req.nextUrl.searchParams.get("scope");
     const session = await auth.api.getSession({ headers: req.headers }).catch(() => null);
     const sessionUserId = session ? Number(session.user.id) : null;
+
+    if (scope === "member") {
+      if (sessionUserId == null || Number.isNaN(sessionUserId)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      const rows = await db
+        .select({
+          id: roadmaps.id,
+          title: roadmaps.title,
+          description: roadmaps.description,
+          createdAt: roadmaps.created_at,
+          createdBy: roadmaps.created_by,
+          creatorName: users.name,
+          teamId: teamRoadmaps.team_id,
+          teamName: teams.name,
+          problemsCount: sql<number>`count(distinct ${roadmapProblems.id})`,
+        })
+        .from(teamRoadmaps)
+        .innerJoin(roadmaps, eq(roadmaps.id, teamRoadmaps.roadmap_id))
+        .innerJoin(teams, eq(teams.id, teamRoadmaps.team_id))
+        .innerJoin(
+          teamMembers,
+          and(
+            eq(teamMembers.team_id, teamRoadmaps.team_id),
+            eq(teamMembers.user_id, sessionUserId),
+          ),
+        )
+        .innerJoin(users, eq(users.id, roadmaps.created_by))
+        .leftJoin(roadmapSteps, eq(roadmapSteps.roadmap_id, roadmaps.id))
+        .leftJoin(roadmapProblems, eq(roadmapProblems.step_id, roadmapSteps.id))
+        .groupBy(
+          roadmaps.id,
+          roadmaps.title,
+          roadmaps.description,
+          roadmaps.created_at,
+          roadmaps.created_by,
+          users.name,
+          teamRoadmaps.team_id,
+          teams.name,
+        )
+        .orderBy(desc(roadmaps.created_at));
+
+      const items = rows.map((roadmap) => ({
+        id: roadmap.id,
+        title: roadmap.title,
+        description: roadmap.description,
+        createdAt: roadmap.createdAt,
+        createdBy: roadmap.createdBy,
+        creatorName: roadmap.creatorName,
+        isOwner: roadmap.createdBy === sessionUserId,
+        teamId: roadmap.teamId,
+        teamName: roadmap.teamName,
+        problemsCount: Number(roadmap.problemsCount ?? 0),
+      }));
+
+      return NextResponse.json({ items });
+    }
 
     const rows = await db
       .select({
