@@ -177,7 +177,7 @@ export async function POST(req: NextRequest, ctx: Params) {
       team_id: teamId,
       roadmap_id: roadmapId,
       added_by: sessionUserId,
-    });
+    }).onConflictDoNothing();
   }
 
   // 1. 문제 upsert

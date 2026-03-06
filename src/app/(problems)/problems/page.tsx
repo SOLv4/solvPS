@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Filter, Layers3, Search, Sparkles, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,9 @@ const tierLabel = (level: number) => {
 };
 
 export default function ProblemsPage() {
+  const searchParams = useSearchParams();
+  const initialRoadmapId = searchParams.get("roadmapId") ?? "";
+
   const [problems, setProblems] = useState<Problem[]>([]);
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [groupId, setGroupId] = useState<number | null>(null);
@@ -152,11 +156,20 @@ export default function ProblemsPage() {
       setSelectedRoadmapId("");
       return;
     }
+    if (initialRoadmapId) {
+      const existsInitial = roadmaps.some(
+        (roadmap) => String(roadmap.id) === initialRoadmapId,
+      );
+      if (existsInitial && selectedRoadmapId !== initialRoadmapId) {
+        setSelectedRoadmapId(initialRoadmapId);
+        return;
+      }
+    }
     const exists = roadmaps.some((roadmap) => String(roadmap.id) === selectedRoadmapId);
     if (!exists) {
       setSelectedRoadmapId(String(roadmaps[0].id));
     }
-  }, [roadmaps, selectedRoadmapId]);
+  }, [roadmaps, selectedRoadmapId, initialRoadmapId]);
 
   useEffect(() => {
     const controller = new AbortController();

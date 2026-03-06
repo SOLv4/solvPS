@@ -230,7 +230,7 @@ export default function RoadmapDetailPage() {
                 </Button>
                 {groupId && roadmap?.isOwner && (
                   <Button asChild className="rounded-lg bg-[#0F46D8] text-white hover:bg-[#0A37B0]">
-                    <Link href="/problems">
+                    <Link href={`/problems?roadmapId=${roadmapId}`}>
                       <Plus className="size-4" />
                       문제 추가
                     </Link>
