@@ -19,6 +19,7 @@ safe_err() {
 
 mkdir -p "${BACKUP_DIR}"
 mkdir -p "${LOG_DIR}"
+mkdir -p "${APP_DIR}"
 
 if [ -f "${APP_DIR}/.env" ]; then
   cp "${APP_DIR}/.env" "${BACKUP_ENV_PATH}"
@@ -32,3 +33,10 @@ else
   safe_err ">>> ERROR: 백업 가능한 .env가 없습니다. (${APP_DIR}/.env, ${STATIC_ENV_PATH})"
   exit 1
 fi
+
+safe_log ">>> 이전 배포 파일 정리 시작: ${APP_DIR}"
+if ! find "${APP_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +; then
+  safe_err ">>> ERROR: 이전 배포 파일 정리에 실패했습니다. 권한 상태 확인 필요 (${APP_DIR})"
+  exit 1
+fi
+safe_log ">>> 이전 배포 파일 정리 완료"
