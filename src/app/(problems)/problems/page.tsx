@@ -59,6 +59,8 @@ const tierLabel = (level: number) => {
 export default function ProblemsPage() {
   const searchParams = useSearchParams();
   const initialRoadmapId = searchParams.get("roadmapId") ?? "";
+  const initialStepId = searchParams.get("stepId") ?? "";
+  const isStepTargetMode = initialStepId !== "";
 
   const [problems, setProblems] = useState<Problem[]>([]);
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
@@ -281,6 +283,7 @@ export default function ProblemsPage() {
               title: problem.title,
               level: problem.level,
               roadmapId: Number(selectedRoadmapId),
+              stepId: isStepTargetMode ? Number(initialStepId) : undefined,
             }),
           }),
         ),
@@ -405,7 +408,11 @@ export default function ProblemsPage() {
             </Select>
           </div>
           <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
-            <Select value={selectedRoadmapId} onValueChange={setSelectedRoadmapId}>
+            <Select
+              value={selectedRoadmapId}
+              onValueChange={setSelectedRoadmapId}
+              disabled={isStepTargetMode}
+            >
               <SelectTrigger className="rounded-xl border-blue-200 bg-white">
                 <SelectValue placeholder="담을 로드맵 선택" />
               </SelectTrigger>
@@ -430,6 +437,11 @@ export default function ProblemsPage() {
               선택 문제 담기 ({selectedProblemIds.length})
             </Button>
           </div>
+          {isStepTargetMode ? (
+            <p className="mt-2 text-xs text-gray-500">
+              스텝에서 이동한 상태입니다. 선택한 문제는 지정된 스텝에 바로 추가됩니다.
+            </p>
+          ) : null}
         </section>
         <section className="space-y-3">
           {loadError ? (

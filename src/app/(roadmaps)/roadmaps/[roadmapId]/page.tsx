@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BookOpen, Check, Layers3, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Layers3, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,6 +26,14 @@ interface Problem {
   bojId: number;
   title: string;
   level: number;
+}
+
+interface SearchProblem {
+  id: string;
+  bojId: number;
+  title: string;
+  level: number;
+  tags: string[];
 }
 
 interface Step {
@@ -62,6 +78,13 @@ export default function RoadmapDetailPage() {
   const [newStepTitle, setNewStepTitle] = useState("");
   const [addingStep, setAddingStep] = useState(false);
   const newStepInputRef = useRef<HTMLInputElement>(null);
+  const [addProblemOpen, setAddProblemOpen] = useState(false);
+  const [targetStepId, setTargetStepId] = useState<number | null>(null);
+  const [problemQuery, setProblemQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchProblem[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [addingProblemId, setAddingProblemId] = useState<number | null>(null);
 
   // 로드맵 데이터 로딩 (팀 없이 직접 조회)
   useEffect(() => {
@@ -108,6 +131,48 @@ export default function RoadmapDetailPage() {
     if (isAddingStep) newStepInputRef.current?.focus();
   }, [isAddingStep]);
 
+  useEffect(() => {
+    if (!addProblemOpen) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const trimmed = problemQuery.trim();
+      if (!trimmed) {
+        setSearchResults([]);
+        setSearchError("");
+        return;
+      }
+      setSearchLoading(true);
+      setSearchError("");
+      try {
+        const params = new URLSearchParams({
+          q: trimmed,
+          tier: "all",
+          tag: "",
+          page: "1",
+          size: "20",
+        });
+        const res = await fetch(`/api/problems/search?${params.toString()}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("검색 실패");
+        const data = (await res.json()) as { items?: SearchProblem[] };
+        setSearchResults(data.items ?? []);
+      } catch (e) {
+        if ((e as { name?: string }).name === "AbortError") return;
+        setSearchResults([]);
+        setSearchError("문제 검색 결과를 불러오지 못했습니다.");
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [addProblemOpen, problemQuery]);
+
   const summary = useMemo(() => {
     const allProblems = steps.flatMap((s) => s.problems);
     return {
@@ -121,6 +186,14 @@ export default function RoadmapDetailPage() {
     fetch(`/api/roadmaps/${roadmapId}`)
       .then((r) => r.json())
       .then((data) => setSteps(data.steps ?? []));
+  }
+
+  function handleOpenAddProblem(stepId: number) {
+    setTargetStepId(stepId);
+    setProblemQuery("");
+    setSearchResults([]);
+    setSearchError("");
+    setAddProblemOpen(true);
   }
 
   async function handleAddStep() {
@@ -183,6 +256,35 @@ export default function RoadmapDetailPage() {
     }
   }
 
+  async function handleAddProblemToStep(problem: SearchProblem) {
+    if (!groupId || !roadmap?.isOwner || !targetStepId) return;
+    setAddingProblemId(problem.bojId);
+    setSearchError("");
+    try {
+      const res = await fetch(`/api/group/${groupId}/roadmap-problems`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roadmapId: Number(roadmapId),
+          stepId: targetStepId,
+          bojId: problem.bojId,
+          title: problem.title,
+          level: problem.level,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "문제 추가 실패");
+      }
+      refreshSteps();
+      setAddProblemOpen(false);
+    } catch (e) {
+      setSearchError(e instanceof Error ? e.message : "문제 추가 실패");
+    } finally {
+      setAddingProblemId(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center">
@@ -228,14 +330,6 @@ export default function RoadmapDetailPage() {
                     목록으로
                   </Link>
                 </Button>
-                {groupId && roadmap?.isOwner && (
-                  <Button asChild className="rounded-lg bg-[#0F46D8] text-white hover:bg-[#0A37B0]">
-                    <Link href={`/problems?roadmapId=${roadmapId}`}>
-                      <Plus className="size-4" />
-                      문제 추가
-                    </Link>
-                  </Button>
-                )}
               </div>
             </div>
 
@@ -278,7 +372,21 @@ export default function RoadmapDetailPage() {
                     <p className="text-xs text-gray-400">{step.description}</p>
                   )}
                 </div>
-                <span className="text-xs text-gray-400">{step.problems.length}문제</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">{step.problems.length}문제</span>
+                  {groupId && roadmap?.isOwner ? (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-xs text-white hover:bg-[#0A37B0]"
+                    >
+                      <Link href={`/problems?roadmapId=${roadmapId}&stepId=${step.id}`}>
+                        <Plus className="mr-1 size-3.5" />
+                        문제 추가
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               {step.problems.length === 0 ? (
@@ -393,6 +501,55 @@ export default function RoadmapDetailPage() {
             )
           )}
         </div>
+        <Dialog open={addProblemOpen} onOpenChange={setAddProblemOpen}>
+          <DialogContent className="rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>스텝에 문제 추가</DialogTitle>
+              <DialogDescription>추가할 문제를 검색해서 선택하세요.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+                <Input
+                  value={problemQuery}
+                  onChange={(e) => setProblemQuery(e.target.value)}
+                  placeholder="문제명 또는 BOJ 번호 검색"
+                  className="rounded-xl border-gray-200 bg-white pl-9"
+                />
+              </div>
+              {searchError ? <p className="text-xs text-red-500">{searchError}</p> : null}
+              {searchLoading ? (
+                <p className="text-xs text-gray-400">검색 중...</p>
+              ) : null}
+              {!searchLoading && problemQuery.trim() && searchResults.length === 0 ? (
+                <p className="text-xs text-gray-400">검색 결과가 없습니다.</p>
+              ) : null}
+              <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                {searchResults.map((problem) => (
+                  <div
+                    key={problem.bojId}
+                    className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {problem.bojId}. {problem.title}
+                      </p>
+                      <p className="text-xs text-gray-400">Lv {problem.level}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-xs text-white hover:bg-[#0A37B0]"
+                      onClick={() => void handleAddProblemToStep(problem)}
+                      disabled={addingProblemId === problem.bojId}
+                    >
+                      {addingProblemId === problem.bojId ? "추가 중..." : "추가"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
