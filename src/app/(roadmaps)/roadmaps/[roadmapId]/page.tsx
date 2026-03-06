@@ -53,12 +53,27 @@ interface RoadmapInfo {
 }
 
 const tierInfo = (level: number): { label: string; color: string } => {
-  if (level === 0) return { label: "Unrated", color: "bg-gray-100 text-gray-500 border-gray-200" };
-  if (level <= 5) return { label: "Bronze", color: "bg-amber-50 text-amber-700 border-amber-200" };
-  if (level <= 10) return { label: "Silver", color: "bg-slate-100 text-slate-600 border-slate-200" };
-  if (level <= 15) return { label: "Gold", color: "bg-yellow-50 text-yellow-700 border-yellow-200" };
-  if (level <= 20) return { label: "Platinum", color: "bg-teal-50 text-teal-700 border-teal-200" };
-  return { label: "Diamond+", color: "bg-blue-50 text-blue-700 border-blue-200" };
+  if (level === 0) {
+    return { label: "Unrated", color: "bg-gray-100 text-gray-500 border-gray-200" };
+  }
+
+  const tier = Math.ceil(level / 5); // 1=Bronze ... 6=Ruby
+  const gradeLabels = ["V", "IV", "III", "II", "I"];
+  const tierNames = ["", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ruby"];
+  const tierColors = [
+    "",
+    "bg-amber-50 text-amber-700 border-amber-200",
+    "bg-slate-100 text-slate-600 border-slate-200",
+    "bg-yellow-50 text-yellow-700 border-yellow-200",
+    "bg-teal-50 text-teal-700 border-teal-200",
+    "bg-blue-50 text-blue-700 border-blue-200",
+    "bg-rose-50 text-rose-700 border-rose-200",
+  ];
+
+  return {
+    label: `${tierNames[tier]} ${gradeLabels[(level - 1) % 5]}`,
+    color: tierColors[tier],
+  };
 };
 
 export default function RoadmapDetailPage() {
@@ -440,7 +455,7 @@ export default function RoadmapDetailPage() {
                         </p>
                         <div className="flex shrink-0 items-center gap-2">
                           <Badge className={`border text-xs ${tier.color}`}>
-                            {tier.label} {problem.level}
+                            {tier.label}
                           </Badge>
                           {groupId && roadmap?.isOwner && steps.length > 1 && (
                             <Select
