@@ -85,13 +85,20 @@ export default function RoadmapDetailPage() {
       .then((r) => r.json())
       .then(async (groups) => {
         if (!Array.isArray(groups) || groups.length === 0) return;
+        const firstGroupId = Number(groups[0]?.id);
+        if (!Number.isNaN(firstGroupId)) {
+          setGroupId(firstGroupId);
+        }
         for (const group of groups) {
           const res = await fetch(`/api/group/${group.id}`);
           const data = await res.json();
           const found = (data.roadmaps ?? []).some(
             (rm: { id: number }) => rm.id === Number(roadmapId)
           );
-          if (found) { setGroupId(group.id); break; }
+          if (found) {
+            setGroupId(group.id);
+            break;
+          }
         }
       })
       .catch(() => {});
