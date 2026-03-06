@@ -12,24 +12,37 @@ import {
   users,
 } from "@/lib/db/schema";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers }).catch(() => null);
+    const sessionUserId = session ? Number(session.user.id) : null;
+
     const rows = await db
       .select({
         id: roadmaps.id,
         title: roadmaps.title,
         description: roadmaps.description,
         createdAt: roadmaps.created_at,
+        createdBy: roadmaps.created_by,
+        creatorName: users.name,
         teamId: sql<number | null>`min(${teamRoadmaps.team_id})`,
         teamName: sql<string | null>`min(${teams.name})`,
         problemsCount: sql<number>`count(distinct ${roadmapProblems.id})`,
       })
       .from(roadmaps)
+      .innerJoin(users, eq(users.id, roadmaps.created_by))
       .leftJoin(teamRoadmaps, eq(teamRoadmaps.roadmap_id, roadmaps.id))
       .leftJoin(teams, eq(teams.id, teamRoadmaps.team_id))
       .leftJoin(roadmapSteps, eq(roadmapSteps.roadmap_id, roadmaps.id))
       .leftJoin(roadmapProblems, eq(roadmapProblems.step_id, roadmapSteps.id))
-      .groupBy(roadmaps.id, roadmaps.title, roadmaps.description, roadmaps.created_at)
+      .groupBy(
+        roadmaps.id,
+        roadmaps.title,
+        roadmaps.description,
+        roadmaps.created_at,
+        roadmaps.created_by,
+        users.name,
+      )
       .orderBy(desc(roadmaps.created_at));
 
     const items = rows.map((roadmap) => ({
@@ -37,6 +50,9 @@ export async function GET() {
       title: roadmap.title,
       description: roadmap.description,
       createdAt: roadmap.createdAt,
+      createdBy: roadmap.createdBy,
+      creatorName: roadmap.creatorName,
+      isOwner: sessionUserId != null && roadmap.createdBy === sessionUserId,
       teamId: roadmap.teamId ?? null,
       teamName: roadmap.teamName ?? null,
       problemsCount: Number(roadmap.problemsCount ?? 0),
@@ -185,9 +201,34 @@ export async function POST(req: NextRequest) {
 // Body: { roadmapId }
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(session.user.id);
+    if (Number.isNaN(userId)) {
+      return NextResponse.json({ error: "Invalid user session" }, { status: 401 });
+    }
+
     const { roadmapId } = (await req.json()) as { roadmapId?: number };
     if (!roadmapId) {
       return NextResponse.json({ error: "roadmapId is required" }, { status: 400 });
+    }
+
+    const [target] = await db
+      .select({ id: roadmaps.id, createdBy: roadmaps.created_by })
+      .from(roadmaps)
+      .where(eq(roadmaps.id, roadmapId))
+      .limit(1);
+
+    if (!target) {
+      return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
+    }
+    if (target.createdBy !== userId) {
+      return NextResponse.json(
+        { error: "로드맵 작성자만 삭제할 수 있습니다." },
+        { status: 403 },
+      );
     }
 
     const [deleted] = await db

@@ -55,6 +55,11 @@ interface WeeklyActivityResponse {
   members: WeeklyMember[];
 }
 
+interface CatalogRoadmap {
+  id: number;
+  title: string;
+}
+
 export default function GroupDashboard() {
   const params = useParams();
   const router = useRouter();
@@ -81,6 +86,10 @@ export default function GroupDashboard() {
     labels: [],
     members: [],
   });
+  const [catalogRoadmaps, setCatalogRoadmaps] = useState<CatalogRoadmap[]>([]);
+  const [selectedCatalogRoadmapId, setSelectedCatalogRoadmapId] = useState("");
+  const [addingRoadmap, setAddingRoadmap] = useState(false);
+  const [addRoadmapError, setAddRoadmapError] = useState("");
   const [progress, setProgress] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
@@ -92,20 +101,27 @@ export default function GroupDashboard() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
+  const loadGroupData = async () => {
     setLoading(true);
     setError("");
-    fetch(`/api/group/${id}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          const json = await res.json();
-          throw new Error(json.error ?? "그룹 정보를 불러오지 못했습니다.");
-        }
-        return res.json();
-      })
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    try {
+      const res = await fetch(`/api/group/${id}`);
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error ?? "그룹 정보를 불러오지 못했습니다.");
+      }
+      const json = (await res.json()) as GroupData;
+      setData(json);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "그룹 정보를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    void loadGroupData();
   }, [id]);
 
   useEffect(() => {
@@ -189,6 +205,73 @@ export default function GroupDashboard() {
       })
       .finally(() => setWeeklyLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    fetch("/api/roadmaps", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json) => {
+        const items = Array.isArray(json.items) ? json.items : [];
+        setCatalogRoadmaps(items.map((item: { id: number; title: string }) => ({
+          id: item.id,
+          title: item.title,
+        })));
+      })
+      .catch(() => setCatalogRoadmaps([]));
+  }, []);
+
+  const linkedRoadmapIds = new Set((data?.roadmaps ?? []).map((roadmap) => roadmap.id));
+  const availableRoadmaps = catalogRoadmaps.filter((roadmap) => !linkedRoadmapIds.has(roadmap.id));
+
+  useEffect(() => {
+    if (availableRoadmaps.length === 0) {
+      setSelectedCatalogRoadmapId("");
+      return;
+    }
+    const exists = availableRoadmaps.some(
+      (roadmap) => String(roadmap.id) === selectedCatalogRoadmapId,
+    );
+    if (!exists) setSelectedCatalogRoadmapId(String(availableRoadmaps[0].id));
+  }, [availableRoadmaps, selectedCatalogRoadmapId]);
+
+  const addRoadmapToGroup = async () => {
+    if (!selectedCatalogRoadmapId) return;
+    setAddingRoadmap(true);
+    setAddRoadmapError("");
+    try {
+      const res = await fetch(`/api/group/${id}/roadmaps`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapId: Number(selectedCatalogRoadmapId) }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error ?? "로드맵 추가 실패");
+      }
+      await loadGroupData();
+    } catch (e) {
+      setAddRoadmapError(e instanceof Error ? e.message : "로드맵 추가 실패");
+    } finally {
+      setAddingRoadmap(false);
+    }
+  };
+
+  const removeRoadmapFromGroup = async (roadmapId: number) => {
+    setAddRoadmapError("");
+    try {
+      const res = await fetch(`/api/group/${id}/roadmaps`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error ?? "로드맵 제거 실패");
+      }
+      await loadGroupData();
+    } catch (e) {
+      setAddRoadmapError(e instanceof Error ? e.message : "로드맵 제거 실패");
+    }
+  };
 
   const copyInviteCode = () => {
     if (!data) return;
@@ -432,7 +515,44 @@ export default function GroupDashboard() {
           </div>
         </div>
 
-        <RoadmapSection roadmaps={data.roadmaps} progress={progress} onToggle={toggleProgress} />
+        <RoadmapSection
+          roadmaps={data.roadmaps}
+          progress={progress}
+          onToggle={toggleProgress}
+          onRemoveRoadmap={(roadmapId) => {
+            void removeRoadmapFromGroup(roadmapId);
+          }}
+          action={
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedCatalogRoadmapId}
+                onChange={(e) => setSelectedCatalogRoadmapId(e.target.value)}
+                disabled={availableRoadmaps.length === 0 || addingRoadmap}
+                className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-700"
+              >
+                {availableRoadmaps.length === 0 ? (
+                  <option value="">추가 가능한 로드맵 없음</option>
+                ) : (
+                  availableRoadmaps.map((roadmap) => (
+                    <option key={roadmap.id} value={String(roadmap.id)}>
+                      {roadmap.title}
+                    </option>
+                  ))
+                )}
+              </select>
+              <button
+                onClick={() => void addRoadmapToGroup()}
+                disabled={!selectedCatalogRoadmapId || addingRoadmap}
+                className="h-8 rounded-lg bg-[#0F46D8] px-3 text-xs font-semibold text-white transition hover:bg-[#0A37B0] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {addingRoadmap ? "추가 중..." : "로드맵 추가"}
+              </button>
+            </div>
+          }
+        />
+        {addRoadmapError ? (
+          <p className="text-xs text-red-500">{addRoadmapError}</p>
+        ) : null}
       </div>
     </div>
   );

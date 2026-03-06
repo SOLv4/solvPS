@@ -19,6 +19,23 @@ async function getTeamId(params: Params["params"]) {
   return isNaN(n) ? null : n;
 }
 
+async function assertRoadmapOwner(roadmapId: number, userId: number) {
+  const [row] = await db
+    .select({ createdBy: roadmaps.created_by })
+    .from(roadmaps)
+    .where(eq(roadmaps.id, roadmapId))
+    .limit(1);
+  if (!row) return { ok: false as const, status: 404, error: "Roadmap not found" };
+  if (row.createdBy !== userId) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "로드맵 작성자만 문제를 수정할 수 있습니다.",
+    };
+  }
+  return { ok: true as const };
+}
+
 // GET /api/group/[id]/roadmap-problems
 // - roadmapId 지정: 해당 로드맵의 문제 목록 { items: [...] }
 // - roadmapId 미지정: 이 팀의 모든 로드맵 문제 매핑 { [bojId]: roadmapId[] }
@@ -106,6 +123,10 @@ export async function POST(req: NextRequest, ctx: Params) {
 
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sessionUserId = Number(session.user.id);
+  if (Number.isNaN(sessionUserId)) {
+    return NextResponse.json({ error: "Invalid user session" }, { status: 401 });
+  }
 
   const isMember = await db
     .select({ id: teamMembers.id })
@@ -113,7 +134,7 @@ export async function POST(req: NextRequest, ctx: Params) {
     .where(
       and(
         eq(teamMembers.team_id, teamId),
-        eq(teamMembers.user_id, Number(session.user.id))
+        eq(teamMembers.user_id, sessionUserId)
       )
     )
     .then((r) => r.length > 0);
@@ -128,6 +149,11 @@ export async function POST(req: NextRequest, ctx: Params) {
 
   if (!bojId || !title || level == null || !roadmapId) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  const owner = await assertRoadmapOwner(roadmapId, sessionUserId);
+  if (!owner.ok) {
+    return NextResponse.json({ error: owner.error }, { status: owner.status });
   }
 
   const [roadmapLink] = await db
@@ -150,7 +176,7 @@ export async function POST(req: NextRequest, ctx: Params) {
     await db.insert(teamRoadmaps).values({
       team_id: teamId,
       roadmap_id: roadmapId,
-      added_by: Number(session.user.id),
+      added_by: sessionUserId,
     });
   }
 
@@ -212,6 +238,10 @@ export async function DELETE(req: NextRequest, ctx: Params) {
 
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sessionUserId = Number(session.user.id);
+  if (Number.isNaN(sessionUserId)) {
+    return NextResponse.json({ error: "Invalid user session" }, { status: 401 });
+  }
 
   const { bojId, roadmapId } = (await req.json()) as {
     bojId: number;
@@ -224,11 +254,16 @@ export async function DELETE(req: NextRequest, ctx: Params) {
     .where(
       and(
         eq(teamMembers.team_id, teamId),
-        eq(teamMembers.user_id, Number(session.user.id))
+        eq(teamMembers.user_id, sessionUserId)
       )
     )
     .then((r) => r.length > 0);
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const owner = await assertRoadmapOwner(roadmapId, sessionUserId);
+  if (!owner.ok) {
+    return NextResponse.json({ error: owner.error }, { status: owner.status });
+  }
 
   const [roadmapLink] = await db
     .select({ roadmapId: teamRoadmaps.roadmap_id })
@@ -276,6 +311,10 @@ export async function PATCH(req: NextRequest, ctx: Params) {
 
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sessionUserId = Number(session.user.id);
+  if (Number.isNaN(sessionUserId)) {
+    return NextResponse.json({ error: "Invalid user session" }, { status: 401 });
+  }
 
   const { bojId, fromStepId, toStepId } = (await req.json()) as {
     bojId: number;
@@ -288,6 +327,20 @@ export async function PATCH(req: NextRequest, ctx: Params) {
     .from(problems)
     .where(eq(problems.boj_id, bojId));
   if (!problem) return NextResponse.json({ error: "Problem not found" }, { status: 404 });
+
+  const [fromStepRoadmap] = await db
+    .select({ roadmapId: roadmapSteps.roadmap_id })
+    .from(roadmapSteps)
+    .where(eq(roadmapSteps.id, fromStepId))
+    .limit(1);
+  if (!fromStepRoadmap) {
+    return NextResponse.json({ error: "Step not found" }, { status: 404 });
+  }
+
+  const owner = await assertRoadmapOwner(fromStepRoadmap.roadmapId, sessionUserId);
+  if (!owner.ok) {
+    return NextResponse.json({ error: owner.error }, { status: owner.status });
+  }
 
   await db
     .update(roadmapProblems)

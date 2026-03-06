@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BookOpenCheck, CheckCircle2, Circle, Flag, Map } from "lucide-react";
 
 interface Step {
@@ -18,9 +19,17 @@ interface Props {
   roadmaps: Roadmap[];
   progress: Record<number, boolean>;
   onToggle: (stepId: number, completed: boolean) => void;
+  onRemoveRoadmap?: (roadmapId: number) => void;
+  action?: ReactNode;
 }
 
-export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) {
+export default function RoadmapSection({
+  roadmaps,
+  progress,
+  onToggle,
+  onRemoveRoadmap,
+  action,
+}: Props) {
   if (roadmaps.length === 0) {
     return (
       <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -29,6 +38,7 @@ export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) 
             <Map size={14} className="text-[#0F46D8]" />
             <h2 className="text-sm font-semibold text-gray-800">로드맵</h2>
           </div>
+          {action}
         </div>
         <div className="p-5">
           <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
@@ -46,9 +56,12 @@ export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) 
           <Map size={14} className="text-[#0F46D8]" />
           <h2 className="text-sm font-semibold text-gray-800">로드맵</h2>
         </div>
-        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
-          {roadmaps.length}개 트랙
-        </span>
+        <div className="flex items-center gap-2">
+          {action}
+          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">
+            {roadmaps.length}개 트랙
+          </span>
+        </div>
       </div>
 
       <div className="divide-y divide-gray-100">
@@ -86,6 +99,14 @@ export default function RoadmapSection({ roadmaps, progress, onToggle }: Props) 
                   >
                     {completedCount}/{stepCount} 완료
                   </span>
+                  {onRemoveRoadmap ? (
+                    <button
+                      onClick={() => onRemoveRoadmap(roadmap.id)}
+                      className="inline-flex items-center rounded-md border border-red-100 px-2 py-1 text-[11px] font-semibold text-red-500 transition hover:bg-red-50"
+                    >
+                      그룹에서 제거
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
