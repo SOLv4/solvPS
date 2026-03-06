@@ -47,13 +47,13 @@ const TIER_NAMES = [
   "다이아몬드",
   "루비",
 ];
-const GRADE_LABELS = ["", "V", "IV", "III", "II", "I"];
+const GRADE_LABELS = ["V", "IV", "III", "II", "I"];
 
 const tierLabel = (level: number) => {
   if (level === 0) return "Unrated";
   const tier = Math.ceil(level / 5); // 1=브론즈 ~ 6=루비
-  const grade = 5 - ((level - 1) % 5); // V=1, IV=2, III=3, II=4, I=5
-  return `${TIER_NAMES[tier]} ${GRADE_LABELS[grade]}`;
+  const grade = GRADE_LABELS[(level - 1) % 5];
+  return `${TIER_NAMES[tier]} ${grade}`;
 };
 
 export default function ProblemsPage() {
