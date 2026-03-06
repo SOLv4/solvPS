@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -Eeuo pipefail
 
 LOG_DIR="/home/ubuntu/.deploy_logs"
 LOG_FILE="${LOG_DIR}/deploy.log"
@@ -15,6 +15,19 @@ log_err() {
   echo "$1" >> "${ERR_LOG_FILE}" 2>/dev/null || true
 }
 
+on_error() {
+  local exit_code=$?
+  local line_no="${BASH_LINENO[0]:-unknown}"
+  local failed_cmd="${BASH_COMMAND:-unknown}"
+  log_err ">>> ERROR: deploy.sh failed at line ${line_no}: ${failed_cmd} (exit=${exit_code})"
+  if [ -f "${ERR_LOG_FILE}" ]; then
+    tail -n 120 "${ERR_LOG_FILE}" >&2 || true
+  fi
+  exit "${exit_code}"
+}
+
+trap on_error ERR
+
 log ">>> 배포 시작"
 
 cd /home/ubuntu/app
@@ -23,6 +36,9 @@ if [ ! -f /home/ubuntu/app/.env ]; then
   log_err ">>> ERROR: /home/ubuntu/app/.env 파일이 없습니다. 배포 중단"
   exit 1
 fi
+
+log ">>> 이전 빌드 캐시 정리"
+rm -rf .next >> "${LOG_FILE}" 2>> "${ERR_LOG_FILE}"
 
 log ">>> 의존성 설치"
 npm install >> "${LOG_FILE}" 2>> "${ERR_LOG_FILE}"
