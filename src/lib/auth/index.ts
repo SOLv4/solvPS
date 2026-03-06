@@ -20,7 +20,7 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   advanced: {
     database: {
-      generateId: false, // Serial ID 유지를 위해 Better Auth의 ID 생성 기능 비활성화
+      generateId: false,
     },
   },
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
