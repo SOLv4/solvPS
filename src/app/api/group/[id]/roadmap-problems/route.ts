@@ -116,7 +116,7 @@ export async function GET(_req: NextRequest, ctx: Params) {
 }
 
 // POST /api/group/[id]/roadmap-problems
-// Body: { bojId, title, level, roadmapId }
+// Body: { bojId, title, level, roadmapId?, stepId? }
 export async function POST(req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
@@ -140,18 +140,41 @@ export async function POST(req: NextRequest, ctx: Params) {
     .then((r) => r.length > 0);
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { bojId, title, level, roadmapId } = (await req.json()) as {
+  const { bojId, title, level, roadmapId, stepId } = (await req.json()) as {
     bojId: number;
     title: string;
     level: number;
-    roadmapId: number;
+    roadmapId?: number;
+    stepId?: number;
   };
 
-  if (!bojId || !title || level == null || !roadmapId) {
+  if (!bojId || !title || level == null || (!roadmapId && !stepId)) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const owner = await assertRoadmapOwner(roadmapId, sessionUserId);
+  let resolvedRoadmapId = roadmapId ?? null;
+  let targetStepId = stepId ?? null;
+
+  if (targetStepId != null) {
+    const [stepRow] = await db
+      .select({ roadmapId: roadmapSteps.roadmap_id })
+      .from(roadmapSteps)
+      .where(eq(roadmapSteps.id, targetStepId))
+      .limit(1);
+    if (!stepRow) {
+      return NextResponse.json({ error: "Step not found" }, { status: 404 });
+    }
+    if (resolvedRoadmapId != null && resolvedRoadmapId !== stepRow.roadmapId) {
+      return NextResponse.json({ error: "Step does not belong to roadmap" }, { status: 400 });
+    }
+    resolvedRoadmapId = stepRow.roadmapId;
+  }
+
+  if (resolvedRoadmapId == null) {
+    return NextResponse.json({ error: "roadmapId is required" }, { status: 400 });
+  }
+
+  const owner = await assertRoadmapOwner(resolvedRoadmapId, sessionUserId);
   if (!owner.ok) {
     return NextResponse.json({ error: owner.error }, { status: owner.status });
   }
@@ -159,14 +182,14 @@ export async function POST(req: NextRequest, ctx: Params) {
   const [roadmapLink] = await db
     .select({ roadmapId: teamRoadmaps.roadmap_id })
     .from(teamRoadmaps)
-    .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, roadmapId)))
+    .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, resolvedRoadmapId)))
     .limit(1);
 
   if (!roadmapLink) {
     const [roadmapExists] = await db
       .select({ id: roadmaps.id })
       .from(roadmaps)
-      .where(eq(roadmaps.id, roadmapId))
+      .where(eq(roadmaps.id, resolvedRoadmapId))
       .limit(1);
 
     if (!roadmapExists) {
@@ -175,7 +198,7 @@ export async function POST(req: NextRequest, ctx: Params) {
 
     await db.insert(teamRoadmaps).values({
       team_id: teamId,
-      roadmap_id: roadmapId,
+      roadmap_id: resolvedRoadmapId,
       added_by: sessionUserId,
     }).onConflictDoNothing();
   }
@@ -187,45 +210,52 @@ export async function POST(req: NextRequest, ctx: Params) {
     .onConflictDoUpdate({ target: problems.boj_id, set: { title, level } })
     .returning({ id: problems.id });
 
-  // 2. 로드맵의 첫 번째 스텝 조회 (없으면 생성)
-  let [step] = await db
-    .select({ id: roadmapSteps.id })
-    .from(roadmapSteps)
-    .where(eq(roadmapSteps.roadmap_id, roadmapId))
-    .orderBy(roadmapSteps.order)
-    .limit(1);
+  // 2~3. 병렬 추가 시 스텝/문제 연결이 꼬이지 않도록 roadmapId 단위 잠금 후 처리
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${resolvedRoadmapId})`);
 
-  if (!step) {
-    [step] = await db
-      .insert(roadmapSteps)
-      .values({ roadmap_id: roadmapId, order: 1, title: "기본 문제" })
-      .returning({ id: roadmapSteps.id });
-  }
+    let stepIdInTx = targetStepId;
+    if (stepIdInTx == null) {
+      let [step] = await tx
+        .select({ id: roadmapSteps.id })
+        .from(roadmapSteps)
+        .where(eq(roadmapSteps.roadmap_id, resolvedRoadmapId))
+        .orderBy(roadmapSteps.order)
+        .limit(1);
 
-  // 3. 이미 이 로드맵 어딘가에 담겨있는지 확인
-  const existing = await db
-    .select({ id: roadmapProblems.id })
-    .from(roadmapProblems)
-    .innerJoin(roadmapSteps, eq(roadmapSteps.id, roadmapProblems.step_id))
-    .where(
-      and(
-        eq(roadmapSteps.roadmap_id, roadmapId),
-        eq(roadmapProblems.problem_id, problem.id)
-      )
-    );
+      if (!step) {
+        [step] = await tx
+          .insert(roadmapSteps)
+          .values({ roadmap_id: resolvedRoadmapId, order: 1, title: "기본 문제" })
+          .returning({ id: roadmapSteps.id });
+      }
+      stepIdInTx = step.id;
+    }
 
-  if (existing.length === 0) {
-    const [maxRow] = await db
-      .select({ maxOrder: sql<number>`coalesce(max(${roadmapProblems.order}), 0)` })
+    const existing = await tx
+      .select({ id: roadmapProblems.id })
       .from(roadmapProblems)
-      .where(eq(roadmapProblems.step_id, step.id));
+      .innerJoin(roadmapSteps, eq(roadmapSteps.id, roadmapProblems.step_id))
+      .where(
+        and(
+          eq(roadmapSteps.roadmap_id, resolvedRoadmapId),
+          eq(roadmapProblems.problem_id, problem.id),
+        ),
+      );
 
-    await db.insert(roadmapProblems).values({
-      step_id: step.id,
-      problem_id: problem.id,
-      order: (maxRow?.maxOrder ?? 0) + 1,
-    });
-  }
+    if (existing.length === 0) {
+      const [maxRow] = await tx
+        .select({ maxOrder: sql<number>`coalesce(max(${roadmapProblems.order}), 0)` })
+        .from(roadmapProblems)
+        .where(eq(roadmapProblems.step_id, stepIdInTx));
+
+      await tx.insert(roadmapProblems).values({
+        step_id: stepIdInTx,
+        problem_id: problem.id,
+        order: (maxRow?.maxOrder ?? 0) + 1,
+      });
+    }
+  });
 
   return NextResponse.json({ ok: true });
 }
