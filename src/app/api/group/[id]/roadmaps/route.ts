@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth/index";
-import { roadmaps, teamMembers, teamRoadmaps, teams } from "@/lib/db/schema";
+import { roadmaps, teamMembers, teamRoadmaps } from "@/lib/db/schema";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -29,56 +29,54 @@ async function isTeamMember(teamId: number, userId: number) {
   return isMember;
 }
 
-async function resolveFallbackCreatorId(teamId: number) {
-  const [team] = await db
-    .select({ createdBy: teams.created_by })
-    .from(teams)
-    .where(eq(teams.id, teamId));
-
-  if (team?.createdBy) return team.createdBy;
-
-  const [member] = await db
-    .select({ userId: teamMembers.user_id })
-    .from(teamMembers)
-    .where(eq(teamMembers.team_id, teamId));
-
-  return member?.userId ?? null;
-}
-
 // POST /api/group/[id]/roadmaps
-// Body: { title, description? }
+// Body:
+// - { roadmapId } -> 기존 로드맵을 그룹에 추가
+// - { title, description? } -> 새 로드맵 생성 후 그룹에 추가
 export async function POST(req: NextRequest, ctx: Params) {
   const teamId = await getTeamId(ctx.params);
   if (!teamId) {
     return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
   }
 
-  const sessionUserId = await getSessionUserId(req);
-  let creatorId: number | null = null;
-
-  if (sessionUserId != null) {
-    const member = await isTeamMember(teamId, sessionUserId);
-    if (member) creatorId = sessionUserId;
-  }
-
-  if (creatorId == null) {
-    creatorId = await resolveFallbackCreatorId(teamId);
-  }
-
-  if (creatorId == null) {
-    return NextResponse.json(
-      { error: "Cannot resolve created_by for this team" },
-      { status: 400 },
-    );
-  }
-
-  const { title, description } = (await req.json()) as {
+  const body = (await req.json()) as {
+    roadmapId?: number;
     title?: string;
     description?: string;
   };
 
-  const trimmedTitle = (title ?? "").trim();
-  const trimmedDescription = (description ?? "").trim();
+  const sessionUserId = await getSessionUserId(req);
+  if (sessionUserId == null) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const creatorId = sessionUserId;
+  const member = await isTeamMember(teamId, creatorId);
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  if (body.roadmapId) {
+    const [target] = await db
+      .select({ id: roadmaps.id })
+      .from(roadmaps)
+      .where(eq(roadmaps.id, body.roadmapId))
+      .limit(1);
+    if (!target) {
+      return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
+    }
+
+    await db
+      .insert(teamRoadmaps)
+      .values({
+        team_id: teamId,
+        roadmap_id: body.roadmapId,
+        added_by: creatorId,
+      })
+      .onConflictDoNothing();
+
+    return NextResponse.json({ ok: true, roadmapId: body.roadmapId });
+  }
+
+  const trimmedTitle = (body.title ?? "").trim();
+  const trimmedDescription = (body.description ?? "").trim();
 
   if (!trimmedTitle) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -116,6 +114,13 @@ export async function DELETE(req: NextRequest, ctx: Params) {
     return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
   }
 
+  const sessionUserId = await getSessionUserId(req);
+  if (sessionUserId == null) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const member = await isTeamMember(teamId, sessionUserId);
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { roadmapId } = (await req.json()) as { roadmapId?: number };
   if (!roadmapId) {
     return NextResponse.json({ error: "roadmapId is required" }, { status: 400 });
@@ -128,16 +133,6 @@ export async function DELETE(req: NextRequest, ctx: Params) {
 
   if (!deletedLink) {
     return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
-  }
-
-  const remains = await db
-    .select({ roadmapId: teamRoadmaps.roadmap_id })
-    .from(teamRoadmaps)
-    .where(eq(teamRoadmaps.roadmap_id, roadmapId))
-    .limit(1);
-
-  if (remains.length === 0) {
-    await db.delete(roadmaps).where(eq(roadmaps.id, roadmapId));
   }
 
   return NextResponse.json({ ok: true });

@@ -32,6 +32,8 @@ interface RoadmapInfo {
   id: number;
   title: string;
   description: string | null;
+  creatorName: string;
+  isOwner: boolean;
 }
 
 const tierInfo = (level: number): { label: string; color: string } => {
@@ -115,7 +117,7 @@ export default function RoadmapDetailPage() {
   }
 
   async function handleAddStep() {
-    if (!newStepTitle.trim() || !groupId) return;
+    if (!newStepTitle.trim() || !groupId || !roadmap?.isOwner) return;
     setAddingStep(true);
     try {
       const res = await fetch(`/api/group/${groupId}/roadmap-steps`, {
@@ -135,7 +137,7 @@ export default function RoadmapDetailPage() {
   }
 
   async function handleDeleteProblem(bojId: number) {
-    if (!groupId) return;
+    if (!groupId || !roadmap?.isOwner) return;
     setSteps((prev) =>
       prev.map((s) => ({ ...s, problems: s.problems.filter((p) => p.bojId !== bojId) }))
     );
@@ -151,7 +153,7 @@ export default function RoadmapDetailPage() {
   }
 
   async function handleMoveProblem(bojId: number, fromStepId: number, toStepId: number) {
-    if (!groupId) return;
+    if (!groupId || !roadmap?.isOwner) return;
     setSteps((prev) => {
       const problem = prev
         .find((s) => s.id === fromStepId)
@@ -210,6 +212,7 @@ export default function RoadmapDetailPage() {
                 <p className="mb-1 text-xs font-medium text-gray-400">트랙 상세</p>
                 <h1 className="text-2xl font-bold text-gray-900">{roadmap?.title}</h1>
                 <p className="mt-1 text-sm text-gray-400">{roadmap?.description || "설명 없음"}</p>
+                <p className="mt-1 text-xs text-gray-400">작성자: {roadmap?.creatorName}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button asChild variant="outline" className="rounded-lg border-gray-200 text-[#0F46D8] hover:bg-gray-50">
@@ -218,7 +221,7 @@ export default function RoadmapDetailPage() {
                     목록으로
                   </Link>
                 </Button>
-                {groupId && (
+                {groupId && roadmap?.isOwner && (
                   <Button asChild className="rounded-lg bg-[#0F46D8] text-white hover:bg-[#0A37B0]">
                     <Link href="/problems">
                       <Plus className="size-4" />
@@ -250,7 +253,9 @@ export default function RoadmapDetailPage() {
         <div className="space-y-3">
           {steps.length === 0 && !isAddingStep && (
             <div className="rounded-2xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-400">
-              {groupId ? "스텝을 추가해서 문제를 단계별로 관리해보세요." : "아직 담긴 문제가 없습니다."}
+              {groupId && roadmap?.isOwner
+                ? "스텝을 추가해서 문제를 단계별로 관리해보세요."
+                : "아직 담긴 문제가 없습니다."}
             </div>
           )}
 
@@ -286,7 +291,7 @@ export default function RoadmapDetailPage() {
                           <Badge className={`border text-xs ${tier.color}`}>
                             {tier.label} {problem.level}
                           </Badge>
-                          {groupId && steps.length > 1 && (
+                          {groupId && roadmap?.isOwner && steps.length > 1 && (
                             <Select
                               value={String(step.id)}
                               onValueChange={(val) =>
@@ -319,7 +324,7 @@ export default function RoadmapDetailPage() {
                               풀기
                             </a>
                           </Button>
-                          {groupId && (
+                          {groupId && roadmap?.isOwner && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -339,7 +344,7 @@ export default function RoadmapDetailPage() {
           ))}
 
           {/* 스텝 추가 (내 그룹에 속한 로드맵일 때만) */}
-          {groupId && (
+          {groupId && roadmap?.isOwner && (
             isAddingStep ? (
               <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 shadow-sm">
                 <input

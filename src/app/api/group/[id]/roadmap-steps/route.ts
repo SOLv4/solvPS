@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth/index";
-import { teamMembers, teamRoadmaps, roadmapSteps } from "@/lib/db/schema";
+import { roadmaps, roadmapSteps, teamMembers, teamRoadmaps } from "@/lib/db/schema";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,6 +38,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     .from(teamRoadmaps)
     .where(and(eq(teamRoadmaps.team_id, teamId), eq(teamRoadmaps.roadmap_id, roadmapId)));
   if (!roadmapLink) return NextResponse.json({ error: "Roadmap not found in team" }, { status: 404 });
+
+  const [roadmapOwner] = await db
+    .select({ createdBy: roadmaps.created_by })
+    .from(roadmaps)
+    .where(eq(roadmaps.id, roadmapId))
+    .limit(1);
+  if (!roadmapOwner) return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
+  if (roadmapOwner.createdBy !== Number(session.user.id)) {
+    return NextResponse.json(
+      { error: "로드맵 작성자만 스텝을 추가할 수 있습니다." },
+      { status: 403 },
+    );
+  }
 
   const [maxRow] = await db
     .select({ maxOrder: sql<number>`coalesce(max(${roadmapSteps.order}), 0)` })
