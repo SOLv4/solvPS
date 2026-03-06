@@ -372,14 +372,7 @@ export default function ProblemsPage() {
               </SelectContent>
             </Select>
           </div>
-        </section>
-
-        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 className="text-base font-semibold text-slate-800">로드맵 담기</h2>
-            <p className="text-xs text-gray-500">로드맵 선택 후 문제를 체크해서 담으세요.</p>
-          </div>
-          <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
             <Select value={selectedRoadmapId} onValueChange={setSelectedRoadmapId}>
               <SelectTrigger className="rounded-xl border-blue-200 bg-white">
                 <SelectValue placeholder="담을 로드맵 선택" />
