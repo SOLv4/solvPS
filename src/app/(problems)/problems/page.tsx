@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Filter, Layers3, Search, Sparkles, Target } from "lucide-react";
+import { Filter, Search, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,17 +215,6 @@ export default function ProblemsPage() {
   }, [q, tierPreset, tagPreset, currentPage]);
 
   const summary = useMemo(() => {
-    const inRoadmapCount = problems.filter((problem) => {
-      const ids = problemRoadmapMap[String(problem.bojId)] ?? [];
-      return ids.length > 0;
-    }).length;
-    const avgLevel =
-      problems.length > 0
-        ? Math.round(
-            (problems.reduce((sum, p) => sum + p.level, 0) / problems.length) *
-              10,
-          ) / 10
-        : 0;
     const tags = problems.flatMap((problem) => problem.tags);
     const topTag = Object.entries(
       tags.reduce<Record<string, number>>((acc, tag) => {
@@ -236,11 +225,9 @@ export default function ProblemsPage() {
 
     return {
       total: problems.length,
-      inRoadmapCount,
-      avgLevel,
       topTag: topTag ? `${topTag[0]} (${topTag[1]})` : "-",
     };
-  }, [problems, problemRoadmapMap]);
+  }, [problems]);
 
   function isInSelectedRoadmap(problem: Problem) {
     if (!selectedRoadmapId) return false;
@@ -324,30 +311,16 @@ export default function ProblemsPage() {
                 문제 검색
               </h1>
               <p className="mt-1 text-sm text-gray-400">
-                난이도/태그 기준으로 문제를 필터링하고 바로 로드맵에 편입하세요.
+                난이도/태그 기준으로 문제를 필터링하고 선택한 로드맵에 담으세요.
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
               <div className="rounded-xl border border-gray-100 p-3.5">
                 <p className="text-xs text-gray-400">검색 결과</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
                   <Search size={16} />
                   {summary.total}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">로드맵 편입</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Layers3 size={16} />
-                  {summary.inRoadmapCount}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-3.5">
-                <p className="text-xs text-gray-400">평균 난이도</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xl font-bold text-[#0F46D8]">
-                  <Target size={16} />
-                  {summary.avgLevel || "-"}
                 </p>
               </div>
               <div className="rounded-xl border border-gray-100 p-3.5">

@@ -77,6 +77,7 @@ export default function RoadmapDetailPage() {
   const [isAddingStep, setIsAddingStep] = useState(false);
   const [newStepTitle, setNewStepTitle] = useState("");
   const [addingStep, setAddingStep] = useState(false);
+  const [deletingStepId, setDeletingStepId] = useState<number | null>(null);
   const newStepInputRef = useRef<HTMLInputElement>(null);
   const [addProblemOpen, setAddProblemOpen] = useState(false);
   const [targetStepId, setTargetStepId] = useState<number | null>(null);
@@ -197,7 +198,7 @@ export default function RoadmapDetailPage() {
   }
 
   async function handleAddStep() {
-    if (!newStepTitle.trim() || !groupId || !roadmap?.isOwner) return;
+    if (addingStep || !newStepTitle.trim() || !groupId || !roadmap?.isOwner) return;
     setAddingStep(true);
     try {
       const res = await fetch(`/api/group/${groupId}/roadmap-steps`, {
@@ -229,6 +230,29 @@ export default function RoadmapDetailPage() {
       });
     } catch {
       refreshSteps();
+    }
+  }
+
+  async function handleDeleteStep(stepId: number) {
+    if (!groupId || !roadmap?.isOwner) return;
+    const ok = window.confirm("이 스텝을 삭제할까요? 스텝에 담긴 문제도 함께 제거됩니다.");
+    if (!ok) return;
+
+    setDeletingStepId(stepId);
+    try {
+      const res = await fetch(`/api/group/${groupId}/roadmap-steps`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepId }),
+      });
+      if (!res.ok) {
+        throw new Error("스텝 삭제 실패");
+      }
+      refreshSteps();
+    } catch {
+      // 실패 시 현재 화면 유지
+    } finally {
+      setDeletingStepId(null);
     }
   }
 
@@ -375,16 +399,28 @@ export default function RoadmapDetailPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">{step.problems.length}문제</span>
                   {groupId && roadmap?.isOwner ? (
-                    <Button
-                      asChild
-                      size="sm"
-                      className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-xs text-white hover:bg-[#0A37B0]"
-                    >
-                      <Link href={`/problems?roadmapId=${roadmapId}&stepId=${step.id}`}>
-                        <Plus className="mr-1 size-3.5" />
-                        문제 추가
-                      </Link>
-                    </Button>
+                    <>
+                      <Button
+                        asChild
+                        size="sm"
+                        className="h-7 rounded-lg bg-[#0F46D8] px-2.5 text-xs text-white hover:bg-[#0A37B0]"
+                      >
+                        <Link href={`/problems?roadmapId=${roadmapId}&stepId=${step.id}`}>
+                          <Plus className="mr-1 size-3.5" />
+                          문제 추가
+                        </Link>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 rounded-lg border-red-100 px-2.5 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => void handleDeleteStep(step.id)}
+                        disabled={deletingStepId === step.id}
+                      >
+                        <Trash2 className="mr-1 size-3.5" />
+                        {deletingStepId === step.id ? "삭제 중..." : "스텝 삭제"}
+                      </Button>
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -467,7 +503,10 @@ export default function RoadmapDetailPage() {
                   value={newStepTitle}
                   onChange={(e) => setNewStepTitle(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddStep();
+                    if (e.key === "Enter") {
+                      if (e.repeat || e.nativeEvent.isComposing || addingStep) return;
+                      void handleAddStep();
+                    }
                     if (e.key === "Escape") { setIsAddingStep(false); setNewStepTitle(""); }
                   }}
                   placeholder="스텝 이름 입력..."
