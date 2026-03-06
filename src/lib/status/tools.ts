@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getUserInfo, getTagStats, searchProblems, TIER_LABEL } from "./solvedac";
 
-// Claude에게 제공할 Tool 정의
 export const tools: Anthropic.Tool[] = [
   {
     name: "get_user_info",
@@ -47,7 +46,6 @@ export const tools: Anthropic.Tool[] = [
   },
 ];
 
-// Tool 실행기 - Claude가 요청한 tool을 실제로 실행
 export async function executeTool(
   toolName: string,
   toolInput: Record<string, string>
@@ -67,7 +65,6 @@ export async function executeTool(
 
     if (toolName === "get_tag_stats") {
       const stats = await getTagStats(toolInput.handle);
-      // 의미 있는 태그만 (전체 문제 10개 이상) 반환
       const filtered = stats
         .filter((s) => s.total >= 10)
         .map((s) => ({
