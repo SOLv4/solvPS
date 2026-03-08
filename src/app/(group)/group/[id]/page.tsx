@@ -606,10 +606,10 @@ export default function GroupDashboard() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                      주간 활동 랭킹
+                      팀 활동 랭킹
                     </h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      최근 7일간의 문제 풀이 기반
+                      solved.ac 스트릭 · 총 풀이 · 난이도 기반
                     </p>
                   </div>
                 </div>

@@ -72,7 +72,7 @@ export default function WeeklyStreakBoard({
   }
 
   if (members.length === 0) {
-    return <p className="text-sm text-slate-500">이번 주 집계할 팀 활동 데이터가 없습니다.</p>;
+    return <p className="text-sm text-slate-500">집계 가능한 팀원 활동 데이터가 없습니다.</p>;
   }
 
   const sorted = [...members].sort((a, b) => b.weeklyScore - a.weeklyScore);
@@ -110,7 +110,7 @@ export default function WeeklyStreakBoard({
                   {m.dailySolved.map((v: number, i: number) => (
                     <div
                       key={`${m.userId}-podium-${labels[i] ?? i}`}
-                      className={`h-5 w-5 rounded-md border ${cellClass(v)}`}
+                      className={`h-5 w-5 rounded-[7px] border ${cellClass(v)}`}
                       title={`${dayNames[i]} · ${v}문제`}
                     />
                   ))}
@@ -145,13 +145,13 @@ export default function WeeklyStreakBoard({
                     {m.dailySolved.map((v: number, i: number) => (
                       <div
                         key={`${m.userId}-list-${i}`}
-                        className={`h-4 w-4 rounded-sm border ${cellClass(v)}`}
+                        className={`h-4 w-4 rounded-[6px] border ${cellClass(v)}`}
                       />
                     ))}
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-black text-slate-900">{scoreText(m.weeklyScore)}</p>
-                    <p className="text-[9px] text-slate-400">풀이 {m.weeklySolved}</p>
+                    <p className="text-[9px] text-slate-400">총 풀이 {m.weeklySolved}</p>
                   </div>
                 </div>
               );
