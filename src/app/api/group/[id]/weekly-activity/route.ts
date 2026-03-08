@@ -92,9 +92,6 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     const memberIds = memberBases.map((m) => m.userId);
-    const joinedAtByUser = new Map<number, Date>(
-      memberBases.map((m) => [m.userId, new Date(m.joinedAt)])
-    );
     const now = new Date();
     const today = startOfDay(now);
     const weekStart = startOfDay(new Date(today));
@@ -157,9 +154,6 @@ export async function GET(req: NextRequest, { params }: Params) {
       bucket.seenSubmissionIds.add(row.submissionId);
 
       const capturedDate = new Date(row.capturedAt);
-      const memberJoinedAt = joinedAtByUser.get(row.userId) ?? new Date(0);
-      if (capturedDate.getTime() < memberJoinedAt.getTime()) continue;
-
       const day = startOfDay(capturedDate);
       const dayStr = dayKey(day);
       bucket.activeDaySet.add(dayStr);
